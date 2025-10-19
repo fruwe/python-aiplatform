@@ -56,8 +56,6 @@ def _preprocess_df_for_json(df: Optional[pd.DataFrame]) -> Optional[pd.DataFrame
         ):
 
             def stringify_cell(cell: Any) -> Optional[str]:
-                if pd.isna(cell):
-                    return None
                 if isinstance(cell, (dict, list)):
                     try:
                         return json.dumps(
@@ -65,6 +63,8 @@ def _preprocess_df_for_json(df: Optional[pd.DataFrame]) -> Optional[pd.DataFrame
                         )
                     except TypeError:
                         return str(cell)
+                elif pd.isna(cell):
+                    return None
                 elif not isinstance(cell, (str, int, float, bool)):
                     if hasattr(cell, "model_dump"):
                         return json.dumps(
@@ -727,42 +727,3 @@ def display_evaluation_dataset(eval_dataset_obj: types.EvaluationDataset) -> Non
     dataframe_json_string = json.dumps(processed_rows, ensure_ascii=False, default=str)
     html_content = _get_inference_html(dataframe_json_string)
     display.display(display.HTML(html_content))
-
-
-def _get_eval_result_from_eval_run(
-    results: types.EvaluationRunResults,
-) -> types.EvaluationResult:
-    """Retrieves an EvaluationResult from the resource name."""
-    if (
-        not results
-        or not results.summary_metrics
-        or not results.summary_metrics.metrics
-    ):
-        return types.EvaluationResult()
-
-    aggregated_metrics_dict = {}
-    for name, value in results.summary_metrics.metrics.items():
-        result = name.rsplit("/", 1)
-        full_metric_name = result[0]
-        aggregated_metric_name = result[1]
-        if full_metric_name not in aggregated_metrics_dict:
-            aggregated_metrics_dict[full_metric_name] = {}
-            aggregated_metrics_dict[full_metric_name]["sub_metric_name"] = (
-                full_metric_name.split("/")[-1]
-            )
-        aggregated_metrics_dict[full_metric_name][aggregated_metric_name] = value
-
-    items_sorted = sorted(
-        aggregated_metrics_dict.items(),
-        key=lambda item: (item[1]["sub_metric_name"], item[0]),
-    )
-
-    aggregated_metrics = [
-        types.AggregatedMetricResult(
-            metric_name=name,
-            mean_score=values.get("AVERAGE"),
-            stdev_score=values.get("STANDARD_DEVIATION"),
-        )
-        for name, values in items_sorted
-    ]
-    return types.EvaluationResult(summary_metrics=aggregated_metrics)
