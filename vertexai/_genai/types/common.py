@@ -45,15 +45,14 @@ from pydantic import (
     model_validator,
 )
 from typing_extensions import TypedDict
-
-logger = logging.getLogger("vertexai_genai.types")
+from . import evals as evals_types
 
 __all__ = ["PrebuiltMetric", "RubricMetric"]  # noqa: F822
 
 
 def __getattr__(name: str) -> typing.Any:
     if name == "PrebuiltMetric" or name == "RubricMetric":
-        module = importlib.import_module("._evals_utils", __package__)
+        module = importlib.import_module(".._evals_metric_loaders", __package__)
         prebuilt_metric_obj = getattr(module, name)
         globals()[name] = prebuilt_metric_obj
         return prebuilt_metric_obj
@@ -279,6 +278,17 @@ class State(_common.CaseInSensitiveEnum):
     """Sandbox runtime has been deleted."""
 
 
+class EvaluationItemType(_common.CaseInSensitiveEnum):
+    """The type of the EvaluationItem."""
+
+    EVALUATION_ITEM_TYPE_UNSPECIFIED = "EVALUATION_ITEM_TYPE_UNSPECIFIED"
+    """The default value. This value is unused."""
+    REQUEST = "REQUEST"
+    """The EvaluationItem is a request to evaluate."""
+    RESULT = "RESULT"
+    """The EvaluationItem is the result of evaluation."""
+
+
 class SamplingMethod(_common.CaseInSensitiveEnum):
     """Represents the sampling method for a BigQuery request set."""
 
@@ -286,6 +296,17 @@ class SamplingMethod(_common.CaseInSensitiveEnum):
     """Sampling method is unspecified."""
     RANDOM = "RANDOM"
     """Sampling method is random."""
+
+
+class RubricContentType(_common.CaseInSensitiveEnum):
+    """Specifies the type of rubric content to generate."""
+
+    PROPERTY = "PROPERTY"
+    """Generate rubrics based on properties."""
+    NL_QUESTION_ANSWER = "NL_QUESTION_ANSWER"
+    """Generate rubrics in an NL question answer format."""
+    PYTHON_CODE_ASSERTION = "PYTHON_CODE_ASSERTION"
+    """Generate rubrics in a unit test format."""
 
 
 class EvaluationRunState(_common.CaseInSensitiveEnum):
@@ -309,17 +330,6 @@ class EvaluationRunState(_common.CaseInSensitiveEnum):
     """Evaluation run is performing rubric generation."""
 
 
-class RubricContentType(_common.CaseInSensitiveEnum):
-    """Specifies the type of rubric content to generate."""
-
-    PROPERTY = "PROPERTY"
-    """Generate rubrics based on properties."""
-    NL_QUESTION_ANSWER = "NL_QUESTION_ANSWER"
-    """Generate rubrics in an NL question answer format."""
-    PYTHON_CODE_ASSERTION = "PYTHON_CODE_ASSERTION"
-    """Generate rubrics in a unit test format."""
-
-
 class Importance(_common.CaseInSensitiveEnum):
     """Importance level of the rubric."""
 
@@ -331,17 +341,6 @@ class Importance(_common.CaseInSensitiveEnum):
     """Medium importance."""
     LOW = "LOW"
     """Low importance."""
-
-
-class EvaluationItemType(_common.CaseInSensitiveEnum):
-    """The type of the EvaluationItem."""
-
-    EVALUATION_ITEM_TYPE_UNSPECIFIED = "EVALUATION_ITEM_TYPE_UNSPECIFIED"
-    """The default value. This value is unused."""
-    REQUEST = "REQUEST"
-    """The EvaluationItem is a request to evaluate."""
-    RESULT = "RESULT"
-    """The EvaluationItem is the result of evaluation."""
 
 
 class GenerateMemoriesResponseGeneratedMemoryAction(_common.CaseInSensitiveEnum):
@@ -358,6 +357,515 @@ class GenerateMemoriesResponseGeneratedMemoryAction(_common.CaseInSensitiveEnum)
       """
     DELETED = "DELETED"
     """The memory was deleted."""
+
+
+class CreateEvaluationItemConfig(_common.BaseModel):
+    """Config to create an evaluation item."""
+
+    http_options: Optional[genai_types.HttpOptions] = Field(
+        default=None, description="""Used to override HTTP request options."""
+    )
+
+
+class CreateEvaluationItemConfigDict(TypedDict, total=False):
+    """Config to create an evaluation item."""
+
+    http_options: Optional[genai_types.HttpOptionsDict]
+    """Used to override HTTP request options."""
+
+
+CreateEvaluationItemConfigOrDict = Union[
+    CreateEvaluationItemConfig, CreateEvaluationItemConfigDict
+]
+
+
+class _CreateEvaluationItemParameters(_common.BaseModel):
+    """Represents a job that creates an evaluation item."""
+
+    evaluation_item_type: Optional[str] = Field(default=None, description="""""")
+    gcs_uri: Optional[str] = Field(default=None, description="""""")
+    display_name: Optional[str] = Field(default=None, description="""""")
+    config: Optional[CreateEvaluationItemConfig] = Field(
+        default=None, description=""""""
+    )
+
+
+class _CreateEvaluationItemParametersDict(TypedDict, total=False):
+    """Represents a job that creates an evaluation item."""
+
+    evaluation_item_type: Optional[str]
+    """"""
+
+    gcs_uri: Optional[str]
+    """"""
+
+    display_name: Optional[str]
+    """"""
+
+    config: Optional[CreateEvaluationItemConfigDict]
+    """"""
+
+
+_CreateEvaluationItemParametersOrDict = Union[
+    _CreateEvaluationItemParameters, _CreateEvaluationItemParametersDict
+]
+
+
+class PromptTemplateData(_common.BaseModel):
+    """Message to hold a prompt template and the values to populate the template."""
+
+    values: Optional[dict[str, genai_types.Content]] = Field(
+        default=None, description="""The values for fields in the prompt template."""
+    )
+
+
+class PromptTemplateDataDict(TypedDict, total=False):
+    """Message to hold a prompt template and the values to populate the template."""
+
+    values: Optional[dict[str, genai_types.ContentDict]]
+    """The values for fields in the prompt template."""
+
+
+PromptTemplateDataOrDict = Union[PromptTemplateData, PromptTemplateDataDict]
+
+
+class EvaluationPrompt(_common.BaseModel):
+    """Represents the prompt to be evaluated."""
+
+    text: Optional[str] = Field(default=None, description="""Text prompt.""")
+    value: Optional[dict[str, Any]] = Field(
+        default=None,
+        description="""Fields and values that can be used to populate the prompt template.""",
+    )
+    prompt_template_data: Optional[PromptTemplateData] = Field(
+        default=None, description="""Prompt template data."""
+    )
+
+
+class EvaluationPromptDict(TypedDict, total=False):
+    """Represents the prompt to be evaluated."""
+
+    text: Optional[str]
+    """Text prompt."""
+
+    value: Optional[dict[str, Any]]
+    """Fields and values that can be used to populate the prompt template."""
+
+    prompt_template_data: Optional[PromptTemplateDataDict]
+    """Prompt template data."""
+
+
+EvaluationPromptOrDict = Union[EvaluationPrompt, EvaluationPromptDict]
+
+
+class CandidateResponse(_common.BaseModel):
+    """Responses from model or agent."""
+
+    candidate: Optional[str] = Field(
+        default=None,
+        description="""The name of the candidate that produced the response.""",
+    )
+    text: Optional[str] = Field(default=None, description="""The text response.""")
+    value: Optional[dict[str, Any]] = Field(
+        default=None,
+        description="""Fields and values that can be used to populate the response template.""",
+    )
+    events: Optional[list[genai_types.Content]] = Field(
+        default=None,
+        description="""Intermediate events (such as tool calls and responses) that led to the final response.""",
+    )
+
+
+class CandidateResponseDict(TypedDict, total=False):
+    """Responses from model or agent."""
+
+    candidate: Optional[str]
+    """The name of the candidate that produced the response."""
+
+    text: Optional[str]
+    """The text response."""
+
+    value: Optional[dict[str, Any]]
+    """Fields and values that can be used to populate the response template."""
+
+    events: Optional[list[genai_types.ContentDict]]
+    """Intermediate events (such as tool calls and responses) that led to the final response."""
+
+
+CandidateResponseOrDict = Union[CandidateResponse, CandidateResponseDict]
+
+
+class EvaluationItemRequest(_common.BaseModel):
+    """Single evaluation request."""
+
+    prompt: Optional[EvaluationPrompt] = Field(
+        default=None, description="""The request/prompt to evaluate."""
+    )
+    golden_response: Optional[CandidateResponse] = Field(
+        default=None, description="""The ideal response or ground truth."""
+    )
+    rubrics: Optional[dict[str, "RubricGroup"]] = Field(
+        default=None,
+        description="""Named groups of rubrics associated with this prompt. The key is a user-defined name for the rubric group.""",
+    )
+    candidate_responses: Optional[list[CandidateResponse]] = Field(
+        default=None,
+        description="""Responses from model under test and other baseline models for comparison.""",
+    )
+
+
+class EvaluationItemRequestDict(TypedDict, total=False):
+    """Single evaluation request."""
+
+    prompt: Optional[EvaluationPromptDict]
+    """The request/prompt to evaluate."""
+
+    golden_response: Optional[CandidateResponseDict]
+    """The ideal response or ground truth."""
+
+    rubrics: Optional[dict[str, "RubricGroupDict"]]
+    """Named groups of rubrics associated with this prompt. The key is a user-defined name for the rubric group."""
+
+    candidate_responses: Optional[list[CandidateResponseDict]]
+    """Responses from model under test and other baseline models for comparison."""
+
+
+EvaluationItemRequestOrDict = Union[EvaluationItemRequest, EvaluationItemRequestDict]
+
+
+class RubricContentProperty(_common.BaseModel):
+    """Defines criteria based on a specific property."""
+
+    description: Optional[str] = Field(
+        default=None,
+        description="""Description of the property being evaluated.
+      Example: "The model's response is grammatically correct." """,
+    )
+
+
+class RubricContentPropertyDict(TypedDict, total=False):
+    """Defines criteria based on a specific property."""
+
+    description: Optional[str]
+    """Description of the property being evaluated.
+      Example: "The model's response is grammatically correct." """
+
+
+RubricContentPropertyOrDict = Union[RubricContentProperty, RubricContentPropertyDict]
+
+
+class RubricContent(_common.BaseModel):
+    """Content of the rubric, defining the testable criteria."""
+
+    property: Optional[RubricContentProperty] = Field(
+        default=None,
+        description="""Evaluation criteria based on a specific property.""",
+    )
+
+
+class RubricContentDict(TypedDict, total=False):
+    """Content of the rubric, defining the testable criteria."""
+
+    property: Optional[RubricContentPropertyDict]
+    """Evaluation criteria based on a specific property."""
+
+
+RubricContentOrDict = Union[RubricContent, RubricContentDict]
+
+
+class Rubric(_common.BaseModel):
+    """Message representing a single testable criterion for evaluation.
+
+    One input prompt could have multiple rubrics.
+    """
+
+    rubric_id: Optional[str] = Field(
+        default=None,
+        description="""Required. Unique identifier for the rubric.
+      This ID is used to refer to this rubric, e.g., in RubricVerdict.""",
+    )
+    content: Optional[RubricContent] = Field(
+        default=None,
+        description="""Required. The actual testable criteria for the rubric.""",
+    )
+    type: Optional[str] = Field(
+        default=None,
+        description="""Optional. A type designator for the rubric, which can inform how it's
+      evaluated or interpreted by systems or users.
+      It's recommended to use consistent, well-defined, upper snake_case strings.
+      Examples: "SUMMARIZATION_QUALITY", "SAFETY_HARMFUL_CONTENT",
+      "INSTRUCTION_ADHERENCE".""",
+    )
+    importance: Optional[Importance] = Field(
+        default=None,
+        description="""Optional. The relative importance of this rubric.""",
+    )
+
+
+class RubricDict(TypedDict, total=False):
+    """Message representing a single testable criterion for evaluation.
+
+    One input prompt could have multiple rubrics.
+    """
+
+    rubric_id: Optional[str]
+    """Required. Unique identifier for the rubric.
+      This ID is used to refer to this rubric, e.g., in RubricVerdict."""
+
+    content: Optional[RubricContentDict]
+    """Required. The actual testable criteria for the rubric."""
+
+    type: Optional[str]
+    """Optional. A type designator for the rubric, which can inform how it's
+      evaluated or interpreted by systems or users.
+      It's recommended to use consistent, well-defined, upper snake_case strings.
+      Examples: "SUMMARIZATION_QUALITY", "SAFETY_HARMFUL_CONTENT",
+      "INSTRUCTION_ADHERENCE"."""
+
+    importance: Optional[Importance]
+    """Optional. The relative importance of this rubric."""
+
+
+RubricOrDict = Union[Rubric, RubricDict]
+
+
+class RubricVerdict(_common.BaseModel):
+    """Represents the verdict of an evaluation against a single rubric."""
+
+    evaluated_rubric: Optional[Rubric] = Field(
+        default=None,
+        description="""Required. The full rubric definition that was evaluated.
+      Storing this ensures the verdict is self-contained and understandable,
+      especially if the original rubric definition changes or was dynamically
+      generated.""",
+    )
+    verdict: Optional[bool] = Field(
+        default=None,
+        description="""Required. Outcome of the evaluation against the rubric, represented as a
+      boolean. `true` indicates a "Pass", `false` indicates a "Fail".""",
+    )
+    reasoning: Optional[str] = Field(
+        default=None,
+        description="""Optional. Human-readable reasoning or explanation for the verdict.
+      This can include specific examples or details from the evaluated content
+      that justify the given verdict.""",
+    )
+
+
+class RubricVerdictDict(TypedDict, total=False):
+    """Represents the verdict of an evaluation against a single rubric."""
+
+    evaluated_rubric: Optional[RubricDict]
+    """Required. The full rubric definition that was evaluated.
+      Storing this ensures the verdict is self-contained and understandable,
+      especially if the original rubric definition changes or was dynamically
+      generated."""
+
+    verdict: Optional[bool]
+    """Required. Outcome of the evaluation against the rubric, represented as a
+      boolean. `true` indicates a "Pass", `false` indicates a "Fail"."""
+
+    reasoning: Optional[str]
+    """Optional. Human-readable reasoning or explanation for the verdict.
+      This can include specific examples or details from the evaluated content
+      that justify the given verdict."""
+
+
+RubricVerdictOrDict = Union[RubricVerdict, RubricVerdictDict]
+
+
+class CandidateResult(_common.BaseModel):
+    """Result for a single candidate."""
+
+    candidate: Optional[str] = Field(
+        default=None,
+        description="""The candidate that is being evaluated. The value is the same as the candidate name in the EvaluationRequest.""",
+    )
+    metric: Optional[str] = Field(
+        default=None, description="""The metric that was evaluated."""
+    )
+    score: Optional[float] = Field(
+        default=None, description="""The score of the metric."""
+    )
+    explanation: Optional[str] = Field(
+        default=None, description="""The explanation for the metric."""
+    )
+    rubric_verdicts: Optional[list[RubricVerdict]] = Field(
+        default=None, description="""The rubric verdicts for the metric."""
+    )
+    additional_results: Optional[dict[str, Any]] = Field(
+        default=None, description="""Additional results for the metric."""
+    )
+
+
+class CandidateResultDict(TypedDict, total=False):
+    """Result for a single candidate."""
+
+    candidate: Optional[str]
+    """The candidate that is being evaluated. The value is the same as the candidate name in the EvaluationRequest."""
+
+    metric: Optional[str]
+    """The metric that was evaluated."""
+
+    score: Optional[float]
+    """The score of the metric."""
+
+    explanation: Optional[str]
+    """The explanation for the metric."""
+
+    rubric_verdicts: Optional[list[RubricVerdictDict]]
+    """The rubric verdicts for the metric."""
+
+    additional_results: Optional[dict[str, Any]]
+    """Additional results for the metric."""
+
+
+CandidateResultOrDict = Union[CandidateResult, CandidateResultDict]
+
+
+class EvaluationItemResult(_common.BaseModel):
+    """Represents the result of an evaluation item."""
+
+    evaluation_request: Optional[str] = Field(
+        default=None, description="""The request item that was evaluated."""
+    )
+    evaluation_run: Optional[str] = Field(
+        default=None,
+        description="""The evaluation run that was used to generate the result.""",
+    )
+    request: Optional[EvaluationItemRequest] = Field(
+        default=None, description="""The request that was evaluated."""
+    )
+    metric: Optional[str] = Field(
+        default=None, description="""The metric that was evaluated."""
+    )
+    candidate_results: Optional[list[CandidateResult]] = Field(
+        default=None, description="""TThe results for the metric."""
+    )
+    metadata: Optional[dict[str, Any]] = Field(
+        default=None, description="""Metadata about the evaluation result."""
+    )
+
+
+class EvaluationItemResultDict(TypedDict, total=False):
+    """Represents the result of an evaluation item."""
+
+    evaluation_request: Optional[str]
+    """The request item that was evaluated."""
+
+    evaluation_run: Optional[str]
+    """The evaluation run that was used to generate the result."""
+
+    request: Optional[EvaluationItemRequestDict]
+    """The request that was evaluated."""
+
+    metric: Optional[str]
+    """The metric that was evaluated."""
+
+    candidate_results: Optional[list[CandidateResultDict]]
+    """TThe results for the metric."""
+
+    metadata: Optional[dict[str, Any]]
+    """Metadata about the evaluation result."""
+
+
+EvaluationItemResultOrDict = Union[EvaluationItemResult, EvaluationItemResultDict]
+
+
+class EvaluationItem(_common.BaseModel):
+    """EvaluationItem is a single evaluation request or result.
+
+    The content of an EvaluationItem is immutable - it cannot be updated once
+    created. EvaluationItems can be deleted when no longer needed.
+    """
+
+    name: Optional[str] = Field(
+        default=None, description="""The resource name of the EvaluationItem."""
+    )
+    display_name: Optional[str] = Field(
+        default=None, description="""The display name of the EvaluationItem."""
+    )
+    metadata: Optional[dict[str, Any]] = Field(
+        default=None, description="""Metadata for the EvaluationItem."""
+    )
+    labels: Optional[dict[str, str]] = Field(
+        default=None, description="""Labels for the EvaluationItem."""
+    )
+    evaluation_item_type: Optional[EvaluationItemType] = Field(
+        default=None, description="""The type of the EvaluationItem."""
+    )
+    evaluation_request: Optional[EvaluationItemRequest] = Field(
+        default=None, description="""The request to evaluate."""
+    )
+    evaluation_response: Optional[EvaluationItemResult] = Field(
+        default=None, description="""The response from evaluation."""
+    )
+    gcs_uri: Optional[str] = Field(
+        default=None,
+        description="""The Cloud Storage object where the request or response is stored.""",
+    )
+    create_time: Optional[datetime.datetime] = Field(
+        default=None, description="""Timestamp when this item was created."""
+    )
+    error: Optional[genai_types.GoogleRpcStatus] = Field(
+        default=None, description="""Error for the evaluation item."""
+    )
+
+    # TODO(b/448806531): Remove all the overridden _from_response methods once the
+    # ticket is resolved and published.
+    @classmethod
+    def _from_response(
+        cls: typing.Type["EvaluationItem"],
+        *,
+        response: dict[str, object],
+        kwargs: dict[str, object],
+    ) -> "EvaluationItem":
+        """Converts a dictionary response into a EvaluationItem object."""
+
+        response = _camel_key_to_snake(response)
+        result = super()._from_response(response=response, kwargs=kwargs)
+        return result
+
+
+class EvaluationItemDict(TypedDict, total=False):
+    """EvaluationItem is a single evaluation request or result.
+
+    The content of an EvaluationItem is immutable - it cannot be updated once
+    created. EvaluationItems can be deleted when no longer needed.
+    """
+
+    name: Optional[str]
+    """The resource name of the EvaluationItem."""
+
+    display_name: Optional[str]
+    """The display name of the EvaluationItem."""
+
+    metadata: Optional[dict[str, Any]]
+    """Metadata for the EvaluationItem."""
+
+    labels: Optional[dict[str, str]]
+    """Labels for the EvaluationItem."""
+
+    evaluation_item_type: Optional[EvaluationItemType]
+    """The type of the EvaluationItem."""
+
+    evaluation_request: Optional[EvaluationItemRequestDict]
+    """The request to evaluate."""
+
+    evaluation_response: Optional[EvaluationItemResultDict]
+    """The response from evaluation."""
+
+    gcs_uri: Optional[str]
+    """The Cloud Storage object where the request or response is stored."""
+
+    create_time: Optional[datetime.datetime]
+    """Timestamp when this item was created."""
+
+    error: Optional[genai_types.GoogleRpcStatusDict]
+    """Error for the evaluation item."""
+
+
+EvaluationItemOrDict = Union[EvaluationItem, EvaluationItemDict]
 
 
 class SamplingConfig(_common.BaseModel):
@@ -452,6 +960,234 @@ EvaluationRunDataSourceOrDict = Union[
 ]
 
 
+class PredefinedMetricSpec(_common.BaseModel):
+    """Spec for predefined metric."""
+
+    metric_spec_name: Optional[str] = Field(
+        default=None,
+        description="""The name of a pre-defined metric, such as "instruction_following_v1" or
+      "text_quality_v1".""",
+    )
+    metric_spec_parameters: Optional[dict] = Field(
+        default=None,
+        description="""The parameters needed to run the pre-defined metric.""",
+    )
+
+
+class PredefinedMetricSpecDict(TypedDict, total=False):
+    """Spec for predefined metric."""
+
+    metric_spec_name: Optional[str]
+    """The name of a pre-defined metric, such as "instruction_following_v1" or
+      "text_quality_v1"."""
+
+    metric_spec_parameters: Optional[dict]
+    """The parameters needed to run the pre-defined metric."""
+
+
+PredefinedMetricSpecOrDict = Union[PredefinedMetricSpec, PredefinedMetricSpecDict]
+
+
+class RubricGenerationSpec(_common.BaseModel):
+    """Spec for generating rubrics."""
+
+    prompt_template: Optional[str] = Field(
+        default=None,
+        description="""Template for the prompt used to generate rubrics.
+      The details should be updated based on the most-recent recipe requirements.""",
+    )
+    generator_model_config: Optional[genai_types.AutoraterConfig] = Field(
+        default=None,
+        description="""Configuration for the model used in rubric generation.
+      Configs including sampling count and base model can be specified here.
+      Flipping is not supported for rubric generation.""",
+    )
+    rubric_content_type: Optional[RubricContentType] = Field(
+        default=None, description="""The type of rubric content to be generated."""
+    )
+    rubric_type_ontology: Optional[list[str]] = Field(
+        default=None,
+        description="""An optional, pre-defined list of allowed types for generated rubrics.
+      If this field is provided, it implies `include_rubric_type` should be true,
+      and the generated rubric types should be chosen from this ontology.""",
+    )
+
+
+class RubricGenerationSpecDict(TypedDict, total=False):
+    """Spec for generating rubrics."""
+
+    prompt_template: Optional[str]
+    """Template for the prompt used to generate rubrics.
+      The details should be updated based on the most-recent recipe requirements."""
+
+    generator_model_config: Optional[genai_types.AutoraterConfigDict]
+    """Configuration for the model used in rubric generation.
+      Configs including sampling count and base model can be specified here.
+      Flipping is not supported for rubric generation."""
+
+    rubric_content_type: Optional[RubricContentType]
+    """The type of rubric content to be generated."""
+
+    rubric_type_ontology: Optional[list[str]]
+    """An optional, pre-defined list of allowed types for generated rubrics.
+      If this field is provided, it implies `include_rubric_type` should be true,
+      and the generated rubric types should be chosen from this ontology."""
+
+
+RubricGenerationSpecOrDict = Union[RubricGenerationSpec, RubricGenerationSpecDict]
+
+
+class LLMBasedMetricSpec(_common.BaseModel):
+    """Specification for an LLM based metric."""
+
+    metric_prompt_template: Optional[str] = Field(
+        default=None, description="""Template for the prompt sent to the judge model."""
+    )
+    system_instruction: Optional[str] = Field(
+        default=None, description="""System instruction for the judge model."""
+    )
+    judge_autorater_config: Optional[genai_types.AutoraterConfig] = Field(
+        default=None,
+        description="""Optional configuration for the judge LLM (Autorater).""",
+    )
+    rubric_group_key: Optional[str] = Field(
+        default=None,
+        description="""Use a pre-defined group of rubrics associated with the input.
+      Refers to a key in the rubric_groups map of EvaluationInstance.""",
+    )
+    predefined_rubric_generation_spec: Optional[PredefinedMetricSpec] = Field(
+        default=None,
+        description="""Dynamically generate rubrics using a predefined spec.""",
+    )
+    rubric_generation_spec: Optional[RubricGenerationSpec] = Field(
+        default=None,
+        description="""Dynamically generate rubrics using this specification.""",
+    )
+
+
+class LLMBasedMetricSpecDict(TypedDict, total=False):
+    """Specification for an LLM based metric."""
+
+    metric_prompt_template: Optional[str]
+    """Template for the prompt sent to the judge model."""
+
+    system_instruction: Optional[str]
+    """System instruction for the judge model."""
+
+    judge_autorater_config: Optional[genai_types.AutoraterConfigDict]
+    """Optional configuration for the judge LLM (Autorater)."""
+
+    rubric_group_key: Optional[str]
+    """Use a pre-defined group of rubrics associated with the input.
+      Refers to a key in the rubric_groups map of EvaluationInstance."""
+
+    predefined_rubric_generation_spec: Optional[PredefinedMetricSpecDict]
+    """Dynamically generate rubrics using a predefined spec."""
+
+    rubric_generation_spec: Optional[RubricGenerationSpecDict]
+    """Dynamically generate rubrics using this specification."""
+
+
+LLMBasedMetricSpecOrDict = Union[LLMBasedMetricSpec, LLMBasedMetricSpecDict]
+
+
+class UnifiedMetric(_common.BaseModel):
+    """The unified metric used for evaluation."""
+
+    bleu_spec: Optional[genai_types.BleuSpec] = Field(
+        default=None, description="""The Bleu metric spec."""
+    )
+    rouge_spec: Optional[genai_types.RougeSpec] = Field(
+        default=None, description="""The rouge metric spec."""
+    )
+    pointwise_metric_spec: Optional[genai_types.PointwiseMetricSpec] = Field(
+        default=None, description="""The pointwise metric spec."""
+    )
+    llm_based_metric_spec: Optional[LLMBasedMetricSpec] = Field(
+        default=None, description="""The spec for an LLM based metric."""
+    )
+    predefined_metric_spec: Optional[PredefinedMetricSpec] = Field(
+        default=None, description="""The spec for a pre-defined metric."""
+    )
+
+
+class UnifiedMetricDict(TypedDict, total=False):
+    """The unified metric used for evaluation."""
+
+    bleu_spec: Optional[genai_types.BleuSpecDict]
+    """The Bleu metric spec."""
+
+    rouge_spec: Optional[genai_types.RougeSpecDict]
+    """The rouge metric spec."""
+
+    pointwise_metric_spec: Optional[genai_types.PointwiseMetricSpecDict]
+    """The pointwise metric spec."""
+
+    llm_based_metric_spec: Optional[LLMBasedMetricSpecDict]
+    """The spec for an LLM based metric."""
+
+    predefined_metric_spec: Optional[PredefinedMetricSpecDict]
+    """The spec for a pre-defined metric."""
+
+
+UnifiedMetricOrDict = Union[UnifiedMetric, UnifiedMetricDict]
+
+
+class EvaluationRunMetric(_common.BaseModel):
+    """The metric used for evaluation run."""
+
+    metric: Optional[str] = Field(
+        default=None, description="""The name of the metric."""
+    )
+    metric_config: Optional[UnifiedMetric] = Field(
+        default=None, description="""The unified metric used for evaluation run."""
+    )
+
+
+class EvaluationRunMetricDict(TypedDict, total=False):
+    """The metric used for evaluation run."""
+
+    metric: Optional[str]
+    """The name of the metric."""
+
+    metric_config: Optional[UnifiedMetricDict]
+    """The unified metric used for evaluation run."""
+
+
+EvaluationRunMetricOrDict = Union[EvaluationRunMetric, EvaluationRunMetricDict]
+
+
+class EvaluationRunConfig(_common.BaseModel):
+    """The evaluation configuration used for the evaluation run."""
+
+    metrics: Optional[list[EvaluationRunMetric]] = Field(
+        default=None,
+        description="""The metrics to be calculated in the evaluation run.""",
+    )
+    output_config: Optional[genai_types.OutputConfig] = Field(
+        default=None, description="""The output config for the evaluation run."""
+    )
+    autorater_config: Optional[genai_types.AutoraterConfig] = Field(
+        default=None, description="""The autorater config for the evaluation run."""
+    )
+
+
+class EvaluationRunConfigDict(TypedDict, total=False):
+    """The evaluation configuration used for the evaluation run."""
+
+    metrics: Optional[list[EvaluationRunMetricDict]]
+    """The metrics to be calculated in the evaluation run."""
+
+    output_config: Optional[genai_types.OutputConfigDict]
+    """The output config for the evaluation run."""
+
+    autorater_config: Optional[genai_types.AutoraterConfigDict]
+    """The autorater config for the evaluation run."""
+
+
+EvaluationRunConfigOrDict = Union[EvaluationRunConfig, EvaluationRunConfigDict]
+
+
 class CreateEvaluationRunConfig(_common.BaseModel):
     """Config to create an evaluation run."""
 
@@ -480,10 +1216,14 @@ class _CreateEvaluationRunParameters(_common.BaseModel):
     data_source: Optional[EvaluationRunDataSource] = Field(
         default=None, description=""""""
     )
-    evaluation_config: Optional[genai_types.EvaluationConfig] = Field(
+    evaluation_config: Optional[EvaluationRunConfig] = Field(
         default=None, description=""""""
     )
+    labels: Optional[dict[str, str]] = Field(default=None, description="""""")
     config: Optional[CreateEvaluationRunConfig] = Field(
+        default=None, description=""""""
+    )
+    inference_configs: Optional[dict[str, "EvaluationRunInferenceConfig"]] = Field(
         default=None, description=""""""
     )
 
@@ -500,10 +1240,16 @@ class _CreateEvaluationRunParametersDict(TypedDict, total=False):
     data_source: Optional[EvaluationRunDataSourceDict]
     """"""
 
-    evaluation_config: Optional[genai_types.EvaluationConfigDict]
+    evaluation_config: Optional[EvaluationRunConfigDict]
+    """"""
+
+    labels: Optional[dict[str, str]]
     """"""
 
     config: Optional[CreateEvaluationRunConfigDict]
+    """"""
+
+    inference_configs: Optional[dict[str, "EvaluationRunInferenceConfigDict"]]
     """"""
 
 
@@ -736,42 +1482,6 @@ class EventDict(TypedDict, total=False):
 EventOrDict = Union[Event, EventDict]
 
 
-class AgentInfo(_common.BaseModel):
-    """The agent info of an agent, used for agent eval."""
-
-    name: Optional[str] = Field(
-        default=None, description="""Agent name, used as an identifier."""
-    )
-    instruction: Optional[str] = Field(
-        default=None, description="""Agent developer instruction."""
-    )
-    description: Optional[str] = Field(
-        default=None, description="""Agent description."""
-    )
-    tool_declarations: Optional[genai_types.ToolListUnion] = Field(
-        default=None, description="""List of tools used by the Agent."""
-    )
-
-
-class AgentInfoDict(TypedDict, total=False):
-    """The agent info of an agent, used for agent eval."""
-
-    name: Optional[str]
-    """Agent name, used as an identifier."""
-
-    instruction: Optional[str]
-    """Agent developer instruction."""
-
-    description: Optional[str]
-    """Agent description."""
-
-    tool_declarations: Optional[genai_types.ToolListUnionDict]
-    """List of tools used by the Agent."""
-
-
-AgentInfoOrDict = Union[AgentInfo, AgentInfoDict]
-
-
 class Message(_common.BaseModel):
     """Represents a single message turn in a conversation."""
 
@@ -841,7 +1551,7 @@ class EvalCase(_common.BaseModel):
         default=None,
         description="""This field is experimental and may change in future versions. Intermediate events of a single turn in an agent run or intermediate events of the last turn for multi-turn an agent run.""",
     )
-    agent_info: Optional[AgentInfo] = Field(
+    agent_info: Optional[evals_types.AgentInfo] = Field(
         default=None,
         description="""This field is experimental and may change in future versions. The agent info of the agent under evaluation. This can be extended for multi-agent evaluation.""",
     )
@@ -876,7 +1586,7 @@ class EvalCaseDict(TypedDict, total=False):
     intermediate_events: Optional[list[EventDict]]
     """This field is experimental and may change in future versions. Intermediate events of a single turn in an agent run or intermediate events of the last turn for multi-turn an agent run."""
 
-    agent_info: Optional[AgentInfoDict]
+    agent_info: Optional[evals_types.AgentInfo]
     """This field is experimental and may change in future versions. The agent info of the agent under evaluation. This can be extended for multi-agent evaluation."""
 
 
@@ -967,7 +1677,7 @@ class EvaluationDataset(_common.BaseModel):
         """Fetches GenAI Observability data from GCS and parses into a DataFrame."""
         try:
             import pandas as pd
-            from . import _evals_utils
+            from .. import _gcs_utils
 
             formats = []
             requests = []
@@ -975,7 +1685,7 @@ class EvaluationDataset(_common.BaseModel):
             system_instructions = []
 
             for case in cases:
-                gcs_utils = _evals_utils.GcsUtils(
+                gcs_utils = _gcs_utils.GcsUtils(
                     case.api_client._api_client if case.api_client else None
                 )
 
@@ -1014,7 +1724,7 @@ class EvaluationDataset(_common.BaseModel):
 
     def show(self) -> None:
         """Shows the evaluation dataset."""
-        from . import _evals_visualization
+        from .. import _evals_visualization
 
         _evals_visualization.display_evaluation_dataset(self)
 
@@ -1102,7 +1812,7 @@ class EvaluationResult(_common.BaseModel):
     metadata: Optional[EvaluationRunMetadata] = Field(
         default=None, description="""Metadata for the evaluation run."""
     )
-    agent_info: Optional[AgentInfo] = Field(
+    agent_info: Optional[evals_types.AgentInfo] = Field(
         default=None,
         description="""This field is experimental and may change in future versions. The agent info of the agent under evaluation. This can be extended for multi-agent evaluation.""",
     )
@@ -1114,7 +1824,7 @@ class EvaluationResult(_common.BaseModel):
             candidate_names: list of names for the evaluated candidates, used in
             comparison reports.
         """
-        from . import _evals_visualization
+        from .. import _evals_visualization
 
         _evals_visualization.display_evaluation_result(self, candidate_names)
 
@@ -1137,7 +1847,7 @@ class EvaluationResultDict(TypedDict, total=False):
     metadata: Optional[EvaluationRunMetadataDict]
     """Metadata for the evaluation run."""
 
-    agent_info: Optional[AgentInfoDict]
+    agent_info: Optional[evals_types.AgentInfo]
     """This field is experimental and may change in future versions. The agent info of the agent under evaluation. This can be extended for multi-agent evaluation."""
 
 
@@ -1169,10 +1879,40 @@ class EvaluationRun(_common.BaseModel):
         default=None,
         description="""The parsed EvaluationItem results for the evaluation run. This is only populated when include_evaluation_items is set to True.""",
     )
+    evaluation_config: Optional[EvaluationRunConfig] = Field(
+        default=None, description="""The evaluation config for the evaluation run."""
+    )
+    inference_configs: Optional[dict[str, "EvaluationRunInferenceConfig"]] = Field(
+        default=None,
+        description="""This field is experimental and may change in future versions. The inference configs for the evaluation run.""",
+    )
+    labels: Optional[dict[str, str]] = Field(default=None, description="""""")
+
+    # TODO(b/448806531): Remove all the overridden _from_response methods once the
+    # ticket is resolved and published.
+    @classmethod
+    def _from_response(
+        cls: typing.Type["EvaluationRun"],
+        *,
+        response: dict[str, object],
+        kwargs: dict[str, object],
+    ) -> "EvaluationRun":
+        """Converts a dictionary response into a EvaluationRun object."""
+
+        snaked_response = _camel_key_to_snake(response)
+        if (
+            "evaluation_run_results" in response
+            and "summaryMetrics" in response["evaluation_run_results"]
+        ):
+            snaked_response["evaluation_run_results"]["summary_metrics"] = response[
+                "evaluation_run_results"
+            ]["summaryMetrics"]
+        result = super()._from_response(response=snaked_response, kwargs=kwargs)
+        return result
 
     def show(self) -> None:
         """Shows the evaluation result."""
-        from . import _evals_visualization
+        from .. import _evals_visualization
 
         logger.warning(f"Evaluation Run state: {self.state}.")
         if self.error:
@@ -1225,8 +1965,114 @@ class EvaluationRunDict(TypedDict, total=False):
     evaluation_item_results: Optional[EvaluationResultDict]
     """The parsed EvaluationItem results for the evaluation run. This is only populated when include_evaluation_items is set to True."""
 
+    evaluation_config: Optional[EvaluationRunConfigDict]
+    """The evaluation config for the evaluation run."""
+
+    inference_configs: Optional[dict[str, "EvaluationRunInferenceConfigDict"]]
+    """This field is experimental and may change in future versions. The inference configs for the evaluation run."""
+
+    labels: Optional[dict[str, str]]
+    """"""
+
 
 EvaluationRunOrDict = Union[EvaluationRun, EvaluationRunDict]
+
+
+class CreateEvaluationSetConfig(_common.BaseModel):
+    """Config to create an evaluation set."""
+
+    http_options: Optional[genai_types.HttpOptions] = Field(
+        default=None, description="""Used to override HTTP request options."""
+    )
+
+
+class CreateEvaluationSetConfigDict(TypedDict, total=False):
+    """Config to create an evaluation set."""
+
+    http_options: Optional[genai_types.HttpOptionsDict]
+    """Used to override HTTP request options."""
+
+
+CreateEvaluationSetConfigOrDict = Union[
+    CreateEvaluationSetConfig, CreateEvaluationSetConfigDict
+]
+
+
+class _CreateEvaluationSetParameters(_common.BaseModel):
+    """Represents a job that creates an evaluation set."""
+
+    evaluation_items: Optional[list[str]] = Field(default=None, description="""""")
+    display_name: Optional[str] = Field(default=None, description="""""")
+    config: Optional[CreateEvaluationSetConfig] = Field(
+        default=None, description=""""""
+    )
+
+
+class _CreateEvaluationSetParametersDict(TypedDict, total=False):
+    """Represents a job that creates an evaluation set."""
+
+    evaluation_items: Optional[list[str]]
+    """"""
+
+    display_name: Optional[str]
+    """"""
+
+    config: Optional[CreateEvaluationSetConfigDict]
+    """"""
+
+
+_CreateEvaluationSetParametersOrDict = Union[
+    _CreateEvaluationSetParameters, _CreateEvaluationSetParametersDict
+]
+
+
+class EvaluationSet(_common.BaseModel):
+    """Represents an evaluation set."""
+
+    name: Optional[str] = Field(
+        default=None, description="""The resource name of the evaluation set."""
+    )
+    display_name: Optional[str] = Field(
+        default=None, description="""The display name of the evaluation set."""
+    )
+    evaluation_items: Optional[list[str]] = Field(
+        default=None,
+        description="""The EvaluationItems that are part of this dataset.""",
+    )
+    create_time: Optional[datetime.datetime] = Field(
+        default=None, description="""The create time of the evaluation set."""
+    )
+    update_time: Optional[datetime.datetime] = Field(
+        default=None, description="""The update time of the evaluation set."""
+    )
+    metadata: Optional[dict[str, Any]] = Field(
+        default=None, description="""The metadata of the evaluation set."""
+    )
+
+
+class EvaluationSetDict(TypedDict, total=False):
+    """Represents an evaluation set."""
+
+    name: Optional[str]
+    """The resource name of the evaluation set."""
+
+    display_name: Optional[str]
+    """The display name of the evaluation set."""
+
+    evaluation_items: Optional[list[str]]
+    """The EvaluationItems that are part of this dataset."""
+
+    create_time: Optional[datetime.datetime]
+    """The create time of the evaluation set."""
+
+    update_time: Optional[datetime.datetime]
+    """The update time of the evaluation set."""
+
+    metadata: Optional[dict[str, Any]]
+    """The metadata of the evaluation set."""
+
+
+EvaluationSetOrDict = Union[EvaluationSet, EvaluationSetDict]
 
 
 class BleuInstance(_common.BaseModel):
@@ -1776,50 +2622,10 @@ ToolParameterKVMatchInputOrDict = Union[
 ]
 
 
-class InstanceDataContents(_common.BaseModel):
-    """List of standard Content messages from Gemini API."""
-
-    contents: Optional[list[genai_types.Content]] = Field(
-        default=None, description="""Repeated contents."""
-    )
-
-
-class InstanceDataContentsDict(TypedDict, total=False):
-    """List of standard Content messages from Gemini API."""
-
-    contents: Optional[list[genai_types.ContentDict]]
-    """Repeated contents."""
-
-
-InstanceDataContentsOrDict = Union[InstanceDataContents, InstanceDataContentsDict]
-
-
-class InstanceData(_common.BaseModel):
-    """Instance data used to populate placeholders in a metric prompt template."""
-
-    text: Optional[str] = Field(default=None, description="""Text data.""")
-    contents: Optional[InstanceDataContents] = Field(
-        default=None, description="""List of Gemini content data."""
-    )
-
-
-class InstanceDataDict(TypedDict, total=False):
-    """Instance data used to populate placeholders in a metric prompt template."""
-
-    text: Optional[str]
-    """Text data."""
-
-    contents: Optional[InstanceDataContentsDict]
-    """List of Gemini content data."""
-
-
-InstanceDataOrDict = Union[InstanceData, InstanceDataDict]
-
-
 class MapInstance(_common.BaseModel):
     """Instance data specified as a map."""
 
-    map_instance: Optional[dict[str, InstanceData]] = Field(
+    map_instance: Optional[dict[str, evals_types.InstanceData]] = Field(
         default=None, description="""Map of instance data."""
     )
 
@@ -1827,120 +2633,25 @@ class MapInstance(_common.BaseModel):
 class MapInstanceDict(TypedDict, total=False):
     """Instance data specified as a map."""
 
-    map_instance: Optional[dict[str, InstanceDataDict]]
+    map_instance: Optional[dict[str, evals_types.InstanceData]]
     """Map of instance data."""
 
 
 MapInstanceOrDict = Union[MapInstance, MapInstanceDict]
 
 
-class Tools(_common.BaseModel):
-    """Represents a list of tools for an agent."""
-
-    tool: Optional[list[genai_types.Tool]] = Field(
-        default=None,
-        description="""List of tools: each tool can have multiple function declarations.""",
-    )
-
-
-class ToolsDict(TypedDict, total=False):
-    """Represents a list of tools for an agent."""
-
-    tool: Optional[list[genai_types.ToolDict]]
-    """List of tools: each tool can have multiple function declarations."""
-
-
-ToolsOrDict = Union[Tools, ToolsDict]
-
-
-class AgentConfig(_common.BaseModel):
-    """Configuration for an Agent."""
-
-    tools_text: Optional[str] = Field(
-        default=None,
-        description="""A JSON string containing a list of tools available to an agent.""",
-    )
-    tools: Optional[Tools] = Field(default=None, description="""List of tools.""")
-    developer_instruction: Optional[InstanceData] = Field(
-        default=None,
-        description="""A field containing instructions from the developer for the agent.""",
-    )
-
-
-class AgentConfigDict(TypedDict, total=False):
-    """Configuration for an Agent."""
-
-    tools_text: Optional[str]
-    """A JSON string containing a list of tools available to an agent."""
-
-    tools: Optional[ToolsDict]
-    """List of tools."""
-
-    developer_instruction: Optional[InstanceDataDict]
-    """A field containing instructions from the developer for the agent."""
-
-
-AgentConfigOrDict = Union[AgentConfig, AgentConfigDict]
-
-
-class Events(_common.BaseModel):
-    """Represents a list of events for an agent."""
-
-    event: Optional[list[genai_types.Content]] = Field(
-        default=None, description="""A list of events."""
-    )
-
-
-class EventsDict(TypedDict, total=False):
-    """Represents a list of events for an agent."""
-
-    event: Optional[list[genai_types.ContentDict]]
-    """A list of events."""
-
-
-EventsOrDict = Union[Events, EventsDict]
-
-
-class AgentData(_common.BaseModel):
-    """Contains data specific to agent evaluations."""
-
-    agent_config: Optional[AgentConfig] = Field(
-        default=None, description="""Agent configuration."""
-    )
-    events_text: Optional[str] = Field(
-        default=None, description="""A JSON string containing a sequence of events."""
-    )
-    events: Optional[Events] = Field(default=None, description="""A list of events.""")
-
-
-class AgentDataDict(TypedDict, total=False):
-    """Contains data specific to agent evaluations."""
-
-    agent_config: Optional[AgentConfigDict]
-    """Agent configuration."""
-
-    events_text: Optional[str]
-    """A JSON string containing a sequence of events."""
-
-    events: Optional[EventsDict]
-    """A list of events."""
-
-
-AgentDataOrDict = Union[AgentData, AgentDataDict]
-
-
 class EvaluationInstance(_common.BaseModel):
     """A single instance to be evaluated."""
 
-    prompt: Optional[InstanceData] = Field(
+    prompt: Optional[evals_types.InstanceData] = Field(
         default=None,
         description="""Data used to populate placeholder `prompt` in a metric prompt template.""",
     )
-    response: Optional[InstanceData] = Field(
+    response: Optional[evals_types.InstanceData] = Field(
         default=None,
         description="""Data used to populate placeholder `response` in a metric prompt template.""",
     )
-    reference: Optional[InstanceData] = Field(
+    reference: Optional[evals_types.InstanceData] = Field(
         default=None,
         description="""Data used to populate placeholder `reference` in a metric prompt template.""",
     )
@@ -1948,7 +2659,7 @@ class EvaluationInstance(_common.BaseModel):
         default=None,
         description="""Other data used to populate placeholders based on their key.""",
     )
-    agent_data: Optional[AgentData] = Field(
+    agent_data: Optional[evals_types.AgentData] = Field(
         default=None, description="""Data used for agent evaluation."""
     )
     rubric_groups: Optional[dict[str, "RubricGroup"]] = Field(
@@ -1960,19 +2671,19 @@ class EvaluationInstance(_common.BaseModel):
 class EvaluationInstanceDict(TypedDict, total=False):
     """A single instance to be evaluated."""
 
-    prompt: Optional[InstanceDataDict]
+    prompt: Optional[evals_types.InstanceData]
     """Data used to populate placeholder `prompt` in a metric prompt template."""
 
-    response: Optional[InstanceDataDict]
+    response: Optional[evals_types.InstanceData]
     """Data used to populate placeholder `response` in a metric prompt template."""
 
-    reference: Optional[InstanceDataDict]
+    reference: Optional[evals_types.InstanceData]
     """Data used to populate placeholder `reference` in a metric prompt template."""
 
     other_data: Optional[MapInstanceDict]
     """Other data used to populate placeholders based on their key."""
 
-    agent_data: Optional[AgentDataDict]
+    agent_data: Optional[evals_types.AgentData]
     """Data used for agent evaluation."""
 
     rubric_groups: Optional[dict[str, "RubricGroupDict"]]
@@ -2000,151 +2711,6 @@ class EvaluateInstancesConfigDict(TypedDict, total=False):
 EvaluateInstancesConfigOrDict = Union[
     EvaluateInstancesConfig, EvaluateInstancesConfigDict
 ]
-
-
-class RubricContentProperty(_common.BaseModel):
-    """Defines criteria based on a specific property."""
-
-    description: Optional[str] = Field(
-        default=None,
-        description="""Description of the property being evaluated.
-      Example: "The model's response is grammatically correct." """,
-    )
-
-
-class RubricContentPropertyDict(TypedDict, total=False):
-    """Defines criteria based on a specific property."""
-
-    description: Optional[str]
-    """Description of the property being evaluated.
-      Example: "The model's response is grammatically correct." """
-
-
-RubricContentPropertyOrDict = Union[RubricContentProperty, RubricContentPropertyDict]
-
-
-class RubricContent(_common.BaseModel):
-    """Content of the rubric, defining the testable criteria."""
-
-    property: Optional[RubricContentProperty] = Field(
-        default=None,
-        description="""Evaluation criteria based on a specific property.""",
-    )
-
-
-class RubricContentDict(TypedDict, total=False):
-    """Content of the rubric, defining the testable criteria."""
-
-    property: Optional[RubricContentPropertyDict]
-    """Evaluation criteria based on a specific property."""
-
-
-RubricContentOrDict = Union[RubricContent, RubricContentDict]
-
-
-class Rubric(_common.BaseModel):
-    """Message representing a single testable criterion for evaluation.
-
-    One input prompt could have multiple rubrics.
-    """
-
-    rubric_id: Optional[str] = Field(
-        default=None,
-        description="""Required. Unique identifier for the rubric.
-      This ID is used to refer to this rubric, e.g., in RubricVerdict.""",
-    )
-    content: Optional[RubricContent] = Field(
-        default=None,
-        description="""Required. The actual testable criteria for the rubric.""",
-    )
-    type: Optional[str] = Field(
-        default=None,
-        description="""Optional. A type designator for the rubric, which can inform how it's
-      evaluated or interpreted by systems or users.
-      It's recommended to use consistent, well-defined, upper snake_case strings.
-      Examples: "SUMMARIZATION_QUALITY", "SAFETY_HARMFUL_CONTENT",
-      "INSTRUCTION_ADHERENCE".""",
-    )
-    importance: Optional[Importance] = Field(
-        default=None,
-        description="""Optional. The relative importance of this rubric.""",
-    )
-
-
-class RubricDict(TypedDict, total=False):
-    """Message representing a single testable criterion for evaluation.
-
-    One input prompt could have multiple rubrics.
-    """
-
-    rubric_id: Optional[str]
-    """Required. Unique identifier for the rubric.
-      This ID is used to refer to this rubric, e.g., in RubricVerdict."""
-
-    content: Optional[RubricContentDict]
-    """Required. The actual testable criteria for the rubric."""
-
-    type: Optional[str]
-    """Optional. A type designator for the rubric, which can inform how it's
-      evaluated or interpreted by systems or users.
-      It's recommended to use consistent, well-defined, upper snake_case strings.
-      Examples: "SUMMARIZATION_QUALITY", "SAFETY_HARMFUL_CONTENT",
-      "INSTRUCTION_ADHERENCE"."""
-
-    importance: Optional[Importance]
-    """Optional. The relative importance of this rubric."""
-
-
-RubricOrDict = Union[Rubric, RubricDict]
-
-
-class RubricGenerationSpec(_common.BaseModel):
-    """Spec for generating rubrics."""
-
-    prompt_template: Optional[str] = Field(
-        default=None,
-        description="""Template for the prompt used to generate rubrics.
-      The details should be updated based on the most-recent recipe requirements.""",
-    )
-    generator_model_config: Optional[genai_types.AutoraterConfig] = Field(
-        default=None,
-        description="""Configuration for the model used in rubric generation.
-      Configs including sampling count and base model can be specified here.
-      Flipping is not supported for rubric generation.""",
-    )
-    rubric_content_type: Optional[RubricContentType] = Field(
-        default=None, description="""The type of rubric content to be generated."""
-    )
-    rubric_type_ontology: Optional[list[str]] = Field(
-        default=None,
-        description="""An optional, pre-defined list of allowed types for generated rubrics.
-      If this field is provided, it implies `include_rubric_type` should be true,
-      and the generated rubric types should be chosen from this ontology.""",
-    )
-
-
-class RubricGenerationSpecDict(TypedDict, total=False):
-    """Spec for generating rubrics."""
-
-    prompt_template: Optional[str]
-    """Template for the prompt used to generate rubrics.
-      The details should be updated based on the most-recent recipe requirements."""
-
-    generator_model_config: Optional[genai_types.AutoraterConfigDict]
-    """Configuration for the model used in rubric generation.
-      Configs including sampling count and base model can be specified here.
-      Flipping is not supported for rubric generation."""
-
-    rubric_content_type: Optional[RubricContentType]
-    """The type of rubric content to be generated."""
-
-    rubric_type_ontology: Optional[list[str]]
-    """An optional, pre-defined list of allowed types for generated rubrics.
-      If this field is provided, it implies `include_rubric_type` should be true,
-      and the generated rubric types should be chosen from this ontology."""
-
-
-RubricGenerationSpecOrDict = Union[RubricGenerationSpec, RubricGenerationSpecDict]
 
 
 class RubricBasedMetricSpec(_common.BaseModel):
@@ -2643,51 +3209,6 @@ class _EvaluateInstancesRequestParametersDict(TypedDict, total=False):
 _EvaluateInstancesRequestParametersOrDict = Union[
     _EvaluateInstancesRequestParameters, _EvaluateInstancesRequestParametersDict
 ]
-
-
-class RubricVerdict(_common.BaseModel):
-    """Represents the verdict of an evaluation against a single rubric."""
-
-    evaluated_rubric: Optional[Rubric] = Field(
-        default=None,
-        description="""Required. The full rubric definition that was evaluated.
-      Storing this ensures the verdict is self-contained and understandable,
-      especially if the original rubric definition changes or was dynamically
-      generated.""",
-    )
-    verdict: Optional[bool] = Field(
-        default=None,
-        description="""Required. Outcome of the evaluation against the rubric, represented as a
-      boolean. `true` indicates a "Pass", `false` indicates a "Fail".""",
-    )
-    reasoning: Optional[str] = Field(
-        default=None,
-        description="""Optional. Human-readable reasoning or explanation for the verdict.
-      This can include specific examples or details from the evaluated content
-      that justify the given verdict.""",
-    )
-
-
-class RubricVerdictDict(TypedDict, total=False):
-    """Represents the verdict of an evaluation against a single rubric."""
-
-    evaluated_rubric: Optional[RubricDict]
-    """Required. The full rubric definition that was evaluated.
-      Storing this ensures the verdict is self-contained and understandable,
-      especially if the original rubric definition changes or was dynamically
-      generated."""
-
-    verdict: Optional[bool]
-    """Required. Outcome of the evaluation against the rubric, represented as a
-      boolean. `true` indicates a "Pass", `false` indicates a "Fail"."""
-
-    reasoning: Optional[str]
-    """Optional. Human-readable reasoning or explanation for the verdict.
-      This can include specific examples or details from the evaluated content
-      that justify the given verdict."""
-
-
-RubricVerdictOrDict = Union[RubricVerdict, RubricVerdictDict]
 
 
 class MetricResult(_common.BaseModel):
@@ -3262,26 +3783,6 @@ EvaluateInstancesResponseOrDict = Union[
 ]
 
 
-class PredefinedMetricSpec(_common.BaseModel):
-    """Spec for predefined metric."""
-
-    metric_spec_name: Optional[str] = Field(default=None, description="""""")
-    metric_spec_parameters: Optional[dict] = Field(default=None, description="""""")
-
-
-class PredefinedMetricSpecDict(TypedDict, total=False):
-    """Spec for predefined metric."""
-
-    metric_spec_name: Optional[str]
-    """"""
-
-    metric_spec_parameters: Optional[dict]
-    """"""
-
-
-PredefinedMetricSpecOrDict = Union[PredefinedMetricSpec, PredefinedMetricSpecDict]
-
-
 class RubricGenerationConfig(_common.BaseModel):
     """Config for generating rubrics."""
 
@@ -3449,55 +3950,6 @@ _GetEvaluationSetParametersOrDict = Union[
 ]
 
 
-class EvaluationSet(_common.BaseModel):
-    """Represents an evaluation set."""
-
-    name: Optional[str] = Field(
-        default=None, description="""The resource name of the evaluation set."""
-    )
-    display_name: Optional[str] = Field(
-        default=None, description="""The display name of the evaluation set."""
-    )
-    evaluation_items: Optional[list[str]] = Field(
-        default=None,
-        description="""The EvaluationItems that are part of this dataset.""",
-    )
-    create_time: Optional[datetime.datetime] = Field(
-        default=None, description="""The create time of the evaluation set."""
-    )
-    update_time: Optional[datetime.datetime] = Field(
-        default=None, description="""The update time of the evaluation set."""
-    )
-    metadata: Optional[dict[str, Any]] = Field(
-        default=None, description="""The metadata of the evaluation set."""
-    )
-
-
-class EvaluationSetDict(TypedDict, total=False):
-    """Represents an evaluation set."""
-
-    name: Optional[str]
-    """The resource name of the evaluation set."""
-
-    display_name: Optional[str]
-    """The display name of the evaluation set."""
-
-    evaluation_items: Optional[list[str]]
-    """The EvaluationItems that are part of this dataset."""
-
-    create_time: Optional[datetime.datetime]
-    """The create time of the evaluation set."""
-
-    update_time: Optional[datetime.datetime]
-    """The update time of the evaluation set."""
-
-    metadata: Optional[dict[str, Any]]
-    """The metadata of the evaluation set."""
-
-
-EvaluationSetOrDict = Union[EvaluationSet, EvaluationSetDict]
-
-
 class GetEvaluationItemConfig(_common.BaseModel):
     """Config for get evaluation item."""
 
@@ -3538,322 +3990,6 @@ class _GetEvaluationItemParametersDict(TypedDict, total=False):
 _GetEvaluationItemParametersOrDict = Union[
     _GetEvaluationItemParameters, _GetEvaluationItemParametersDict
 ]
-
-
-class PromptTemplateData(_common.BaseModel):
-    """Message to hold a prompt template and the values to populate the template."""
-
-    values: Optional[dict[str, genai_types.Content]] = Field(
-        default=None, description="""The values for fields in the prompt template."""
-    )
-
-
-class PromptTemplateDataDict(TypedDict, total=False):
-    """Message to hold a prompt template and the values to populate the template."""
-
-    values: Optional[dict[str, genai_types.ContentDict]]
-    """The values for fields in the prompt template."""
-
-
-PromptTemplateDataOrDict = Union[PromptTemplateData, PromptTemplateDataDict]
-
-
-class EvaluationPrompt(_common.BaseModel):
-    """Represents the prompt to be evaluated."""
-
-    text: Optional[str] = Field(default=None, description="""Text prompt.""")
-    value: Optional[dict[str, Any]] = Field(
-        default=None,
-        description="""Fields and values that can be used to populate the prompt template.""",
-    )
-    prompt_template_data: Optional[PromptTemplateData] = Field(
-        default=None, description="""Prompt template data."""
-    )
-
-
-class EvaluationPromptDict(TypedDict, total=False):
-    """Represents the prompt to be evaluated."""
-
-    text: Optional[str]
-    """Text prompt."""
-
-    value: Optional[dict[str, Any]]
-    """Fields and values that can be used to populate the prompt template."""
-
-    prompt_template_data: Optional[PromptTemplateDataDict]
-    """Prompt template data."""
-
-
-EvaluationPromptOrDict = Union[EvaluationPrompt, EvaluationPromptDict]
-
-
-class CandidateResponse(_common.BaseModel):
-    """Responses from model or agent."""
-
-    candidate: Optional[str] = Field(
-        default=None,
-        description="""The name of the candidate that produced the response.""",
-    )
-    text: Optional[str] = Field(default=None, description="""The text response.""")
-    value: Optional[dict[str, Any]] = Field(
-        default=None,
-        description="""Fields and values that can be used to populate the response template.""",
-    )
-    events: Optional[list[genai_types.Content]] = Field(
-        default=None,
-        description="""Intermediate events (such as tool calls and responses) that led to the final response.""",
-    )
-
-
-class CandidateResponseDict(TypedDict, total=False):
-    """Responses from model or agent."""
-
-    candidate: Optional[str]
-    """The name of the candidate that produced the response."""
-
-    text: Optional[str]
-    """The text response."""
-
-    value: Optional[dict[str, Any]]
-    """Fields and values that can be used to populate the response template."""
-
-    events: Optional[list[genai_types.ContentDict]]
-    """Intermediate events (such as tool calls and responses) that led to the final response."""
-
-
-CandidateResponseOrDict = Union[CandidateResponse, CandidateResponseDict]
-
-
-class EvaluationItemRequest(_common.BaseModel):
-    """Single evaluation request."""
-
-    prompt: Optional[EvaluationPrompt] = Field(
-        default=None, description="""The request/prompt to evaluate."""
-    )
-    golden_response: Optional[CandidateResponse] = Field(
-        default=None, description="""The ideal response or ground truth."""
-    )
-    rubrics: Optional[dict[str, "RubricGroup"]] = Field(
-        default=None,
-        description="""Named groups of rubrics associated with this prompt. The key is a user-defined name for the rubric group.""",
-    )
-    candidate_responses: Optional[list[CandidateResponse]] = Field(
-        default=None,
-        description="""Responses from model under test and other baseline models for comparison.""",
-    )
-
-
-class EvaluationItemRequestDict(TypedDict, total=False):
-    """Single evaluation request."""
-
-    prompt: Optional[EvaluationPromptDict]
-    """The request/prompt to evaluate."""
-
-    golden_response: Optional[CandidateResponseDict]
-    """The ideal response or ground truth."""
-
-    rubrics: Optional[dict[str, "RubricGroupDict"]]
-    """Named groups of rubrics associated with this prompt. The key is a user-defined name for the rubric group."""
-
-    candidate_responses: Optional[list[CandidateResponseDict]]
-    """Responses from model under test and other baseline models for comparison."""
-
-
-EvaluationItemRequestOrDict = Union[EvaluationItemRequest, EvaluationItemRequestDict]
-
-
-class CandidateResult(_common.BaseModel):
-    """Result for a single candidate."""
-
-    candidate: Optional[str] = Field(
-        default=None,
-        description="""The candidate that is being evaluated. The value is the same as the candidate name in the EvaluationRequest.""",
-    )
-    metric: Optional[str] = Field(
-        default=None, description="""The metric that was evaluated."""
-    )
-    score: Optional[float] = Field(
-        default=None, description="""The score of the metric."""
-    )
-    explanation: Optional[str] = Field(
-        default=None, description="""The explanation for the metric."""
-    )
-    rubric_verdicts: Optional[list[RubricVerdict]] = Field(
-        default=None, description="""The rubric verdicts for the metric."""
-    )
-    additional_results: Optional[dict[str, Any]] = Field(
-        default=None, description="""Additional results for the metric."""
-    )
-
-
-class CandidateResultDict(TypedDict, total=False):
-    """Result for a single candidate."""
-
-    candidate: Optional[str]
-    """The candidate that is being evaluated. The value is the same as the candidate name in the EvaluationRequest."""
-
-    metric: Optional[str]
-    """The metric that was evaluated."""
-
-    score: Optional[float]
-    """The score of the metric."""
-
-    explanation: Optional[str]
-    """The explanation for the metric."""
-
-    rubric_verdicts: Optional[list[RubricVerdictDict]]
-    """The rubric verdicts for the metric."""
-
-    additional_results: Optional[dict[str, Any]]
-    """Additional results for the metric."""
-
-
-CandidateResultOrDict = Union[CandidateResult, CandidateResultDict]
-
-
-class EvaluationItemResult(_common.BaseModel):
-    """Represents the result of an evaluation item."""
-
-    evaluation_request: Optional[str] = Field(
-        default=None, description="""The request item that was evaluated."""
-    )
-    evaluation_run: Optional[str] = Field(
-        default=None,
-        description="""The evaluation run that was used to generate the result.""",
-    )
-    request: Optional[EvaluationItemRequest] = Field(
-        default=None, description="""The request that was evaluated."""
-    )
-    metric: Optional[str] = Field(
-        default=None, description="""The metric that was evaluated."""
-    )
-    candidate_results: Optional[list[CandidateResult]] = Field(
-        default=None, description="""TThe results for the metric."""
-    )
-    metadata: Optional[dict[str, Any]] = Field(
-        default=None, description="""Metadata about the evaluation result."""
-    )
-
-
-class EvaluationItemResultDict(TypedDict, total=False):
-    """Represents the result of an evaluation item."""
-
-    evaluation_request: Optional[str]
-    """The request item that was evaluated."""
-
-    evaluation_run: Optional[str]
-    """The evaluation run that was used to generate the result."""
-
-    request: Optional[EvaluationItemRequestDict]
-    """The request that was evaluated."""
-
-    metric: Optional[str]
-    """The metric that was evaluated."""
-
-    candidate_results: Optional[list[CandidateResultDict]]
-    """TThe results for the metric."""
-
-    metadata: Optional[dict[str, Any]]
-    """Metadata about the evaluation result."""
-
-
-EvaluationItemResultOrDict = Union[EvaluationItemResult, EvaluationItemResultDict]
-
-
-class EvaluationItem(_common.BaseModel):
-    """EvaluationItem is a single evaluation request or result.
-
-    The content of an EvaluationItem is immutable - it cannot be updated once
-    created. EvaluationItems can be deleted when no longer needed.
-    """
-
-    name: Optional[str] = Field(
-        default=None, description="""The resource name of the EvaluationItem."""
-    )
-    display_name: Optional[str] = Field(
-        default=None, description="""The display name of the EvaluationItem."""
-    )
-    metadata: Optional[dict[str, Any]] = Field(
-        default=None, description="""Metadata for the EvaluationItem."""
-    )
-    labels: Optional[dict[str, str]] = Field(
-        default=None, description="""Labels for the EvaluationItem."""
-    )
-    evaluation_item_type: Optional[EvaluationItemType] = Field(
-        default=None, description="""The type of the EvaluationItem."""
-    )
-    evaluation_request: Optional[EvaluationItemRequest] = Field(
-        default=None, description="""The request to evaluate."""
-    )
-    evaluation_response: Optional[EvaluationItemResult] = Field(
-        default=None, description="""The response from evaluation."""
-    )
-    gcs_uri: Optional[str] = Field(
-        default=None,
-        description="""The Cloud Storage object where the request or response is stored.""",
-    )
-    create_time: Optional[datetime.datetime] = Field(
-        default=None, description="""Timestamp when this item was created."""
-    )
-    error: Optional[genai_types.GoogleRpcStatus] = Field(
-        default=None, description="""Error for the evaluation item."""
-    )
-
-    # TODO(b/448806531): Remove all the overridden _from_response methods once the
-    # ticket is resolved and published.
-    @classmethod
-    def _from_response(
-        cls: typing.Type["EvaluationItem"],
-        *,
-        response: dict[str, object],
-        kwargs: dict[str, object],
-    ) -> "EvaluationItem":
-        """Converts a dictionary response into a EvaluationItem object."""
-
-        response = _camel_key_to_snake(response)
-        result = super()._from_response(response=response, kwargs=kwargs)
-        return result
-
-
-class EvaluationItemDict(TypedDict, total=False):
-    """EvaluationItem is a single evaluation request or result.
-
-    The content of an EvaluationItem is immutable - it cannot be updated once
-    created. EvaluationItems can be deleted when no longer needed.
-    """
-
-    name: Optional[str]
-    """The resource name of the EvaluationItem."""
-
-    display_name: Optional[str]
-    """The display name of the EvaluationItem."""
-
-    metadata: Optional[dict[str, Any]]
-    """Metadata for the EvaluationItem."""
-
-    labels: Optional[dict[str, str]]
-    """Labels for the EvaluationItem."""
-
-    evaluation_item_type: Optional[EvaluationItemType]
-    """The type of the EvaluationItem."""
-
-    evaluation_request: Optional[EvaluationItemRequestDict]
-    """The request to evaluate."""
-
-    evaluation_response: Optional[EvaluationItemResultDict]
-    """The response from evaluation."""
-
-    gcs_uri: Optional[str]
-    """The Cloud Storage object where the request or response is stored."""
-
-    create_time: Optional[datetime.datetime]
-    """Timestamp when this item was created."""
-
-    error: Optional[genai_types.GoogleRpcStatusDict]
-    """Error for the evaluation item."""
-
-
-EvaluationItemOrDict = Union[EvaluationItem, EvaluationItemDict]
 
 
 class OptimizeConfig(_common.BaseModel):
@@ -5013,6 +5149,30 @@ MemoryBankCustomizationConfigGenerateMemoriesExampleConversationSourceOrDict = U
 ]
 
 
+class MemoryTopicId(_common.BaseModel):
+    """The topic ID for a memory."""
+
+    custom_memory_topic_label: Optional[str] = Field(
+        default=None, description="""Optional. The custom memory topic label."""
+    )
+    managed_memory_topic: Optional[ManagedTopicEnum] = Field(
+        default=None, description="""Optional. The managed memory topic."""
+    )
+
+
+class MemoryTopicIdDict(TypedDict, total=False):
+    """The topic ID for a memory."""
+
+    custom_memory_topic_label: Optional[str]
+    """Optional. The custom memory topic label."""
+
+    managed_memory_topic: Optional[ManagedTopicEnum]
+    """Optional. The managed memory topic."""
+
+
+MemoryTopicIdOrDict = Union[MemoryTopicId, MemoryTopicIdDict]
+
+
 class MemoryBankCustomizationConfigGenerateMemoriesExampleGeneratedMemory(
     _common.BaseModel
 ):
@@ -5020,6 +5180,10 @@ class MemoryBankCustomizationConfigGenerateMemoriesExampleGeneratedMemory(
 
     fact: Optional[str] = Field(
         default=None, description="""Required. The fact to generate a memory from."""
+    )
+    topics: Optional[list[MemoryTopicId]] = Field(
+        default=None,
+        description="""Optional. The list of topics that the memory should be associated with. For example, use `custom_memory_topic_label = "jargon"` if the extracted memory is an example of memory extraction for the custom topic `jargon`.""",
     )
 
 
@@ -5030,6 +5194,9 @@ class MemoryBankCustomizationConfigGenerateMemoriesExampleGeneratedMemoryDict(
 
     fact: Optional[str]
     """Required. The fact to generate a memory from."""
+
+    topics: Optional[list[MemoryTopicIdDict]]
+    """Optional. The list of topics that the memory should be associated with. For example, use `custom_memory_topic_label = "jargon"` if the extracted memory is an example of memory extraction for the custom topic `jargon`."""
 
 
 MemoryBankCustomizationConfigGenerateMemoriesExampleGeneratedMemoryOrDict = Union[
@@ -6115,6 +6282,9 @@ class AgentEngineMemoryConfig(_common.BaseModel):
         default=None,
         description="""Optional. Input only. If true, no revision will be created for this request.""",
     )
+    topics: Optional[list[MemoryTopicId]] = Field(
+        default=None, description="""Optional. The topics of the memory."""
+    )
 
 
 class AgentEngineMemoryConfigDict(TypedDict, total=False):
@@ -6148,6 +6318,9 @@ class AgentEngineMemoryConfigDict(TypedDict, total=False):
 
     disable_memory_revisions: Optional[bool]
     """Optional. Input only. If true, no revision will be created for this request."""
+
+    topics: Optional[list[MemoryTopicIdDict]]
+    """Optional. The topics of the memory."""
 
 
 AgentEngineMemoryConfigOrDict = Union[
@@ -6256,6 +6429,9 @@ class Memory(_common.BaseModel):
         default=None,
         description="""Output only. Timestamp when this Memory was most recently updated.""",
     )
+    topics: Optional[list[MemoryTopicId]] = Field(
+        default=None, description="""Optional. The Topics of the Memory."""
+    )
 
 
 class MemoryDict(TypedDict, total=False):
@@ -6296,6 +6472,9 @@ class MemoryDict(TypedDict, total=False):
 
     update_time: Optional[datetime.datetime]
     """Output only. Timestamp when this Memory was most recently updated."""
+
+    topics: Optional[list[MemoryTopicIdDict]]
+    """Optional. The Topics of the Memory."""
 
 
 MemoryOrDict = Union[Memory, MemoryDict]
@@ -6523,6 +6702,10 @@ class GenerateMemoriesRequestDirectMemoriesSourceDirectMemory(_common.BaseModel)
         default=None,
         description="""Required. The fact to consolidate with existing memories.""",
     )
+    topics: Optional[list[MemoryTopicId]] = Field(
+        default=None,
+        description="""Optional. The topics that the consolidated memories should be associated with.""",
+    )
 
 
 class GenerateMemoriesRequestDirectMemoriesSourceDirectMemoryDict(
@@ -6532,6 +6715,9 @@ class GenerateMemoriesRequestDirectMemoriesSourceDirectMemoryDict(
 
     fact: Optional[str]
     """Required. The fact to consolidate with existing memories."""
+
+    topics: Optional[list[MemoryTopicIdDict]]
+    """Optional. The topics that the consolidated memories should be associated with."""
 
 
 GenerateMemoriesRequestDirectMemoriesSourceDirectMemoryOrDict = Union[
@@ -7366,6 +7552,9 @@ class UpdateAgentEngineMemoryConfig(_common.BaseModel):
         default=None,
         description="""Optional. Input only. If true, no revision will be created for this request.""",
     )
+    topics: Optional[list[MemoryTopicId]] = Field(
+        default=None, description="""Optional. The topics of the memory."""
+    )
     update_mask: Optional[str] = Field(
         default=None,
         description="""The update mask to apply. For the `FieldMask` definition, see
@@ -7404,6 +7593,9 @@ class UpdateAgentEngineMemoryConfigDict(TypedDict, total=False):
 
     disable_memory_revisions: Optional[bool]
     """Optional. Input only. If true, no revision will be created for this request."""
+
+    topics: Optional[list[MemoryTopicIdDict]]
+    """Optional. The topics of the memory."""
 
     update_mask: Optional[str]
     """The update mask to apply. For the `FieldMask` definition, see
@@ -7699,12 +7891,33 @@ SandboxEnvironmentSpecCodeExecutionEnvironmentOrDict = Union[
 ]
 
 
+class SandboxEnvironmentSpecComputerUseEnvironment(_common.BaseModel):
+    """The computer use environment with customized settings."""
+
+    pass
+
+
+class SandboxEnvironmentSpecComputerUseEnvironmentDict(TypedDict, total=False):
+    """The computer use environment with customized settings."""
+
+    pass
+
+
+SandboxEnvironmentSpecComputerUseEnvironmentOrDict = Union[
+    SandboxEnvironmentSpecComputerUseEnvironment,
+    SandboxEnvironmentSpecComputerUseEnvironmentDict,
+]
+
+
 class SandboxEnvironmentSpec(_common.BaseModel):
     """The specification of a sandbox environment."""
 
     code_execution_environment: Optional[
         SandboxEnvironmentSpecCodeExecutionEnvironment
     ] = Field(default=None, description="""Optional. The code execution environment.""")
+    computer_use_environment: Optional[SandboxEnvironmentSpecComputerUseEnvironment] = (
+        Field(default=None, description="""Optional. The computer use environment.""")
+    )
 
 
 class SandboxEnvironmentSpecDict(TypedDict, total=False):
@@ -7714,6 +7927,9 @@ class SandboxEnvironmentSpecDict(TypedDict, total=False):
         SandboxEnvironmentSpecCodeExecutionEnvironmentDict
     ]
     """Optional. The code execution environment."""
+
+    computer_use_environment: Optional[SandboxEnvironmentSpecComputerUseEnvironmentDict]
+    """Optional. The computer use environment."""
 
 
 SandboxEnvironmentSpecOrDict = Union[SandboxEnvironmentSpec, SandboxEnvironmentSpecDict]
@@ -7735,6 +7951,10 @@ class CreateAgentEngineSandboxConfig(_common.BaseModel):
         default=True,
         description="""Waits for the operation to complete before returning.""",
     )
+    ttl: Optional[str] = Field(
+        default=None,
+        description="""The TTL for this resource. The expiration time is computed: now + TTL.""",
+    )
 
 
 class CreateAgentEngineSandboxConfigDict(TypedDict, total=False):
@@ -7751,6 +7971,9 @@ class CreateAgentEngineSandboxConfigDict(TypedDict, total=False):
 
     wait_for_completion: Optional[bool]
     """Waits for the operation to complete before returning."""
+
+    ttl: Optional[str]
+    """The TTL for this resource. The expiration time is computed: now + TTL."""
 
 
 CreateAgentEngineSandboxConfigOrDict = Union[
@@ -7792,9 +8015,52 @@ _CreateAgentEngineSandboxRequestParametersOrDict = Union[
 ]
 
 
+class SandboxEnvironmentConnectionInfo(_common.BaseModel):
+    """The connection information of the SandboxEnvironment."""
+
+    load_balancer_hostname: Optional[str] = Field(
+        default=None, description="""Output only. The hostname of the load balancer."""
+    )
+    load_balancer_ip: Optional[str] = Field(
+        default=None,
+        description="""Output only. The IP address of the load balancer.""",
+    )
+    sandbox_internal_ip: Optional[str] = Field(
+        default=None,
+        description="""Output only. The internal IP address of the SandboxEnvironment.""",
+    )
+
+
+class SandboxEnvironmentConnectionInfoDict(TypedDict, total=False):
+    """The connection information of the SandboxEnvironment."""
+
+    load_balancer_hostname: Optional[str]
+    """Output only. The hostname of the load balancer."""
+
+    load_balancer_ip: Optional[str]
+    """Output only. The IP address of the load balancer."""
+
+    sandbox_internal_ip: Optional[str]
+    """Output only. The internal IP address of the SandboxEnvironment."""
+
+
+SandboxEnvironmentConnectionInfoOrDict = Union[
+    SandboxEnvironmentConnectionInfo, SandboxEnvironmentConnectionInfoDict
+]
+
+
 class SandboxEnvironment(_common.BaseModel):
     """A sandbox environment."""
 
+    expire_time: Optional[datetime.datetime] = Field(
+        default=None,
+        description="""Expiration time of the sandbox environment.
+      """,
+    )
+    connection_info: Optional[SandboxEnvironmentConnectionInfo] = Field(
+        default=None,
+        description="""Output only. The connection information of the SandboxEnvironment.""",
+    )
     create_time: Optional[datetime.datetime] = Field(
         default=None,
         description="""Output only. The timestamp when this SandboxEnvironment was created.""",
@@ -7826,6 +8092,13 @@ class SandboxEnvironment(_common.BaseModel):
 
 class SandboxEnvironmentDict(TypedDict, total=False):
     """A sandbox environment."""
+
+    expire_time: Optional[datetime.datetime]
+    """Expiration time of the sandbox environment.
+      """
+
+    connection_info: Optional[SandboxEnvironmentConnectionInfoDict]
+    """Output only. The connection information of the SandboxEnvironment."""
 
     create_time: Optional[datetime.datetime]
     """Output only. The timestamp when this SandboxEnvironment was created."""
@@ -9243,6 +9516,11 @@ class CreateMultimodalDatasetConfig(_common.BaseModel):
     http_options: Optional[genai_types.HttpOptions] = Field(
         default=None, description="""Used to override HTTP request options."""
     )
+    timeout: Optional[int] = Field(
+        default=90,
+        description="""The timeout for the create dataset request in seconds. If not set,
+      the default timeout is 90 seconds.""",
+    )
 
 
 class CreateMultimodalDatasetConfigDict(TypedDict, total=False):
@@ -9250,6 +9528,10 @@ class CreateMultimodalDatasetConfigDict(TypedDict, total=False):
 
     http_options: Optional[genai_types.HttpOptionsDict]
     """Used to override HTTP request options."""
+
+    timeout: Optional[int]
+    """The timeout for the create dataset request in seconds. If not set,
+      the default timeout is 90 seconds."""
 
 
 CreateMultimodalDatasetConfigOrDict = Union[
@@ -9303,7 +9585,7 @@ class SchemaTablesDatasetMetadata(_common.BaseModel):
     """Represents the metadata schema for multimodal dataset metadata."""
 
     input_config: Optional[SchemaTablesDatasetMetadataInputConfig] = Field(
-        default=None, description=""""""
+        default=None, description="""inputConfig"""
     )
 
 
@@ -9311,7 +9593,7 @@ class SchemaTablesDatasetMetadataDict(TypedDict, total=False):
     """Represents the metadata schema for multimodal dataset metadata."""
 
     input_config: Optional[SchemaTablesDatasetMetadataInputConfigDict]
-    """"""
+    """inputConfig"""
 
 
 SchemaTablesDatasetMetadataOrDict = Union[
@@ -9367,6 +9649,36 @@ _CreateMultimodalDatasetParametersOrDict = Union[
 ]
 
 
+class MultimodalDataset(_common.BaseModel):
+    """Represents a multimodal dataset."""
+
+    name: Optional[str] = Field(
+        default=None, description="""The ID of the multimodal dataset."""
+    )
+    display_name: Optional[str] = Field(
+        default=None, description="""The display name of the multimodal dataset."""
+    )
+    bigquery_uri: Optional[str] = Field(
+        default=None, description="""The BigQuery URI of the multimodal dataset."""
+    )
+
+
+class MultimodalDatasetDict(TypedDict, total=False):
+    """Represents a multimodal dataset."""
+
+    name: Optional[str]
+    """The ID of the multimodal dataset."""
+
+    display_name: Optional[str]
+    """The display name of the multimodal dataset."""
+
+    bigquery_uri: Optional[str]
+    """The BigQuery URI of the multimodal dataset."""
+
+
+MultimodalDatasetOrDict = Union[MultimodalDataset, MultimodalDatasetDict]
+
+
 class MultimodalDatasetOperation(_common.BaseModel):
     """Represents the create dataset operation."""
 
@@ -9386,7 +9698,7 @@ class MultimodalDatasetOperation(_common.BaseModel):
         default=None,
         description="""The error result of the operation in case of failure or cancellation.""",
     )
-    response: Optional[dict[str, Any]] = Field(
+    response: Optional[MultimodalDataset] = Field(
         default=None, description="""The result of the dataset operation."""
     )
 
@@ -9406,12 +9718,61 @@ class MultimodalDatasetOperationDict(TypedDict, total=False):
     error: Optional[dict[str, Any]]
     """The error result of the operation in case of failure or cancellation."""
 
-    response: Optional[dict[str, Any]]
+    response: Optional[MultimodalDatasetDict]
     """The result of the dataset operation."""
 
 
 MultimodalDatasetOperationOrDict = Union[
     MultimodalDatasetOperation, MultimodalDatasetOperationDict
+]
+
+
+class GetMultimodalDatasetOperationConfig(_common.BaseModel):
+    """Config for getting a multimodal dataset operation."""
+
+    http_options: Optional[genai_types.HttpOptions] = Field(
+        default=None, description="""Used to override HTTP request options."""
+    )
+
+
+class GetMultimodalDatasetOperationConfigDict(TypedDict, total=False):
+    """Config for getting a multimodal dataset operation."""
+
+    http_options: Optional[genai_types.HttpOptionsDict]
+    """Used to override HTTP request options."""
+
+
+GetMultimodalDatasetOperationConfigOrDict = Union[
+    GetMultimodalDatasetOperationConfig, GetMultimodalDatasetOperationConfigDict
+]
+
+
+class _GetMultimodalDatasetOperationParameters(_common.BaseModel):
+    """Parameters for getting a dataset operation."""
+
+    config: Optional[GetMultimodalDatasetOperationConfig] = Field(
+        default=None, description=""""""
+    )
+    dataset_id: Optional[str] = Field(default=None, description="""""")
+    operation_id: Optional[str] = Field(default=None, description="""""")
+
+
+class _GetMultimodalDatasetOperationParametersDict(TypedDict, total=False):
+    """Parameters for getting a dataset operation."""
+
+    config: Optional[GetMultimodalDatasetOperationConfigDict]
+    """"""
+
+    dataset_id: Optional[str]
+    """"""
+
+    operation_id: Optional[str]
+    """"""
+
+
+_GetMultimodalDatasetOperationParametersOrDict = Union[
+    _GetMultimodalDatasetOperationParameters,
+    _GetMultimodalDatasetOperationParametersDict,
 ]
 
 
@@ -11765,6 +12126,71 @@ class EvalCaseMetricResultDict(TypedDict, total=False):
 
 
 EvalCaseMetricResultOrDict = Union[EvalCaseMetricResult, EvalCaseMetricResultDict]
+
+
+class EvaluationRunAgentConfig(_common.BaseModel):
+    """This field is experimental and may change in future versions.
+
+    Agent config for an evaluation run.
+    """
+
+    developer_instruction: Optional[genai_types.Content] = Field(
+        default=None, description="""The developer instruction for the agent."""
+    )
+    tools: Optional[list[genai_types.Tool]] = Field(
+        default=None, description="""The tools available to the agent."""
+    )
+
+
+class EvaluationRunAgentConfigDict(TypedDict, total=False):
+    """This field is experimental and may change in future versions.
+
+    Agent config for an evaluation run.
+    """
+
+    developer_instruction: Optional[genai_types.ContentDict]
+    """The developer instruction for the agent."""
+
+    tools: Optional[list[genai_types.ToolDict]]
+    """The tools available to the agent."""
+
+
+EvaluationRunAgentConfigOrDict = Union[
+    EvaluationRunAgentConfig, EvaluationRunAgentConfigDict
+]
+
+
+class EvaluationRunInferenceConfig(_common.BaseModel):
+    """This field is experimental and may change in future versions.
+
+    Configuration that describes an agent.
+    """
+
+    agent_config: Optional[EvaluationRunAgentConfig] = Field(
+        default=None, description="""The agent config."""
+    )
+    model: Optional[str] = Field(
+        default=None,
+        description="""The fully qualified name of the publisher model or endpoint to use for inference.""",
+    )
+
+
+class EvaluationRunInferenceConfigDict(TypedDict, total=False):
+    """This field is experimental and may change in future versions.
+
+    Configuration that describes an agent.
+    """
+
+    agent_config: Optional[EvaluationRunAgentConfigDict]
+    """The agent config."""
+
+    model: Optional[str]
+    """The fully qualified name of the publisher model or endpoint to use for inference."""
+
+
+EvaluationRunInferenceConfigOrDict = Union[
+    EvaluationRunInferenceConfig, EvaluationRunInferenceConfigDict
+]
 
 
 class SessionInput(_common.BaseModel):

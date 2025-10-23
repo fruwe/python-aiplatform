@@ -17,6 +17,7 @@ import importlib
 import json
 import os
 from unittest import mock
+from typing import Optional
 import dataclasses
 
 from google import auth
@@ -26,6 +27,7 @@ from vertexai.agent_engines import _utils
 from vertexai import agent_engines
 from google.genai import types
 import pytest
+import uuid
 
 
 try:
@@ -129,11 +131,27 @@ def trace_provider_mock():
 
 
 @pytest.fixture
+def default_instrumentor_builder_mock():
+    with mock.patch(
+        "google.cloud.aiplatform.vertexai.agent_engines.templates.adk._default_instrumentor_builder"
+    ) as default_instrumentor_builder_mock:
+        yield default_instrumentor_builder_mock
+
+
+@pytest.fixture
 def simple_span_processor_mock():
     with mock.patch(
         "opentelemetry.sdk.trace.export.SimpleSpanProcessor"
     ) as simple_span_processor_mock:
         yield simple_span_processor_mock
+
+
+@pytest.fixture
+def adk_version_mock():
+    with mock.patch(
+        "google.cloud.aiplatform.vertexai.agent_engines.templates.adk.get_adk_version"
+    ) as adk_version_mock:
+        yield adk_version_mock
 
 
 class _MockRunner:
@@ -397,10 +415,130 @@ class TestAdkApp:
         )
         assert len(response.memories) >= 1
 
-    @mock.patch.dict(os.environ, {"GOOGLE_CLOUD_AGENT_ENGINE_ID": "test_agent_id"})
-    def test_tracing_setup(
-        self, trace_provider_mock: mock.Mock, cloud_trace_exporter_mock: mock.Mock
+    @pytest.mark.parametrize(
+        "adk_version,enable_tracing,enable_telemetry,want_tracing_setup,want_logging_setup",
+        [
+            ("1.16.0", False, False, False, False),
+            ("1.16.0", False, True, False, True),
+            ("1.16.0", False, None, False, False),
+            ("1.16.0", True, False, False, False),
+            ("1.16.0", True, True, True, True),
+            ("1.16.0", True, None, True, False),
+            ("1.16.0", None, False, False, False),
+            ("1.16.0", None, True, False, True),
+            ("1.16.0", None, None, False, False),
+            ("1.17.0", False, False, False, False),
+            ("1.17.0", False, True, False, True),
+            ("1.17.0", False, None, False, False),
+            ("1.17.0", True, False, False, False),
+            ("1.17.0", True, True, True, True),
+            ("1.17.0", True, None, True, False),
+            ("1.17.0", None, False, False, False),
+            ("1.17.0", None, True, True, True),
+            ("1.17.0", None, None, False, False),
+        ],
+    )
+    @mock.patch.dict(os.environ)
+    def test_default_instrumentor_enablement(
+        self,
+        adk_version: str,
+        enable_tracing: Optional[bool],
+        enable_telemetry: Optional[bool],
+        want_tracing_setup: bool,
+        want_logging_setup: bool,
+        default_instrumentor_builder_mock: mock.Mock,
+        adk_version_mock: mock.Mock,
     ):
+        # Arrange
+        adk_version_mock.return_value = adk_version
+        if enable_telemetry is not None:
+            os.environ["GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY"] = str(
+                enable_telemetry
+            )
+
+        app = agent_engines.AdkApp(agent=_TEST_AGENT, enable_tracing=enable_tracing)
+
+        # Act
+        app.set_up()
+
+        # Assert
+        default_instrumentor_builder_mock.assert_called_once_with(
+            _TEST_PROJECT,
+            enable_tracing=want_tracing_setup,
+            enable_logging=want_logging_setup,
+        )
+
+    @pytest.mark.parametrize(
+        "adk_version,enable_tracing,enable_telemetry,want_custom_instrumentor_called",
+        [
+            ("1.16.0", False, False, False),
+            ("1.16.0", False, True, False),
+            ("1.16.0", False, None, False),
+            ("1.16.0", True, False, False),
+            ("1.16.0", True, True, True),
+            ("1.16.0", True, None, True),
+            ("1.16.0", None, False, False),
+            ("1.16.0", None, True, False),
+            ("1.16.0", None, None, False),
+            ("1.17.0", False, False, False),
+            ("1.17.0", False, True, False),
+            ("1.17.0", False, None, False),
+            ("1.17.0", True, False, False),
+            ("1.17.0", True, True, True),
+            ("1.17.0", True, None, True),
+            ("1.17.0", None, False, False),
+            ("1.17.0", None, True, True),
+            ("1.17.0", None, None, False),
+        ],
+    )
+    @mock.patch.dict(os.environ)
+    def test_custom_instrumentor_enablement(
+        self,
+        adk_version: str,
+        enable_tracing: Optional[bool],
+        enable_telemetry: Optional[bool],
+        want_custom_instrumentor_called: bool,
+        adk_version_mock: mock.Mock,
+    ):
+        # Arrange
+        adk_version_mock.return_value = adk_version
+        if enable_telemetry is not None:
+            os.environ["GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY"] = str(
+                enable_telemetry
+            )
+        custom_instrumentor = mock.Mock()
+        app = agent_engines.AdkApp(
+            agent=_TEST_AGENT,
+            enable_tracing=enable_tracing,
+            instrumentor_builder=custom_instrumentor,
+        )
+
+        # Act
+        app.set_up()
+
+        # Assert
+        if want_custom_instrumentor_called:
+            custom_instrumentor.assert_called_once_with(_TEST_PROJECT)
+        else:
+            custom_instrumentor.assert_not_called()
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "GOOGLE_CLOUD_AGENT_ENGINE_ID": "test_agent_id",
+            "OTEL_RESOURCE_ATTRIBUTES": "some-attribute=some-value",
+        },
+    )
+    def test_tracing_setup(
+        self,
+        trace_provider_mock: mock.Mock,
+        cloud_trace_exporter_mock: mock.Mock,
+        monkeypatch,
+    ):
+        monkeypatch.setattr(
+            "uuid.uuid4", lambda: uuid.UUID("12345678123456781234567812345678")
+        )
+        monkeypatch.setattr("os.getpid", lambda: 123123123)
         app = agent_engines.AdkApp(agent=_TEST_AGENT, enable_tracing=True)
         app.set_up()
 
@@ -409,8 +547,12 @@ class TestAdkApp:
             "telemetry.sdk.name": "opentelemetry",
             "telemetry.sdk.version": "1.36.0",
             "gcp.project_id": "test-project",
+            "cloud.account.id": "test-project",
             "service.name": "test_agent_id",
             "cloud.resource_id": "//aiplatform.googleapis.com/projects/test-project/locations/us-central1/reasoningEngines/test_agent_id",
+            "service.instance.id": "12345678123456781234567812345678-123123123",
+            "cloud.region": "us-central1",
+            "some-attribute": "some-value",
         }
 
         @dataclasses.dataclass
@@ -466,10 +608,10 @@ class TestAdkApp:
     @mock.patch.dict(
         os.environ, {"OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "true"}
     )
-    def test_span_content_capture_enabled_with_env_var(self):
+    def test_span_content_capture_disabled_with_env_var(self):
         app = agent_engines.AdkApp(agent=_TEST_AGENT)
         app.set_up()
-        assert os.environ["ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS"] == "true"
+        assert os.environ["ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS"] == "false"
 
     @mock.patch.dict(os.environ)
     def test_span_content_capture_enabled_with_tracing(self):

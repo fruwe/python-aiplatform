@@ -137,6 +137,14 @@ def check_run_1957799200510967808(
     assert evaluation_run.evaluation_run_results.evaluation_set == (
         "projects/503583131166/locations/us-central1/evaluationSets/102386522778501120"
     )
+    assert evaluation_run.inference_configs == {
+        "checkpoint_1": types.EvaluationRunInferenceConfig(
+            model="projects/503583131166/locations/us-central1/endpoints/9030177948249882624"
+        ),
+        "checkpoint_2": types.EvaluationRunInferenceConfig(
+            model="projects/503583131166/locations/us-central1/endpoints/7751155654076661760"
+        ),
+    }
     assert evaluation_run.evaluation_run_results.summary_metrics == (
         types.SummaryMetric(
             metrics={
@@ -248,7 +256,7 @@ def check_run_1957799200510967808_evaluation_item_results(
     assert isinstance(eval_case_result, types.EvalCaseResult)
     # Check the response candidate results.
     response_candidate_result = eval_case_result.response_candidate_results[0]
-    assert isinstance(response_candidate_result, types.ResponseCandidateResult)
+    assert response_candidate_result.response_index == 0
     universal_metric_result = response_candidate_result.metric_results["universal"]
     assert isinstance(universal_metric_result, types.EvalCaseMetricResult)
     assert universal_metric_result.metric_name == "universal"
