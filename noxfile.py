@@ -25,6 +25,8 @@ import warnings
 
 import nox
 
+nox.options.default_venv_backend = "uv"
+
 FLAKE8_VERSION = "flake8==6.1.0"
 BLACK_VERSION = "black==24.8.0"
 ISORT_VERSION = "isort==5.10.1"
@@ -51,10 +53,10 @@ DOCFX_DEPENDENCIES = (
     "recommonmark",
 )
 
-UNIT_TEST_PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13"]
-UNIT_TEST_LANGCHAIN_PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13"]
-UNIT_TEST_AG2_PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13"]
-UNIT_TEST_LLAMA_INDEX_PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13"]
+UNIT_TEST_PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+UNIT_TEST_LANGCHAIN_PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+UNIT_TEST_AG2_PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+UNIT_TEST_LLAMA_INDEX_PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
 PYTHON_TO_RAY_VERSIONS = {
     "3.10": ["2.9.3", "2.33.0", "2.42.0"],
     "3.11": ["2.42.0", "2.47.1"],
@@ -161,7 +163,7 @@ def format(session):
 @nox.session(python=DEFAULT_PYTHON_VERSION)
 def lint_setup_py(session):
     """Verify that setup.py is valid (including RST check)."""
-    session.install("docutils", "pygments")
+    session.install("docutils", "pygments", "setuptools")
     session.run("python", "setup.py", "check", "--restructuredtext", "--strict")
 
 
