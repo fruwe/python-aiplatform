@@ -433,6 +433,9 @@ from .common import GetPromptConfig
 from .common import GetPromptConfigDict
 from .common import GetPromptConfigOrDict
 from .common import Importance
+from .common import IntermediateExtractedMemory
+from .common import IntermediateExtractedMemoryDict
+from .common import IntermediateExtractedMemoryOrDict
 from .common import JobState
 from .common import Language
 from .common import ListAgentEngineConfig
@@ -584,6 +587,9 @@ from .common import OptimizeResponseEndpoint
 from .common import OptimizeResponseEndpointDict
 from .common import OptimizeResponseEndpointOrDict
 from .common import OptimizeResponseOrDict
+from .common import OptimizerMethodPlaceholder
+from .common import OptimizerMethodPlaceholderDict
+from .common import OptimizerMethodPlaceholderOrDict
 from .common import OptimizeTarget
 from .common import PairwiseChoice
 from .common import PairwiseMetricInput
@@ -615,9 +621,10 @@ from .common import PromptData
 from .common import PromptDataDict
 from .common import PromptDataOrDict
 from .common import PromptDict
-from .common import PromptOptimizerVAPOConfig
-from .common import PromptOptimizerVAPOConfigDict
-from .common import PromptOptimizerVAPOConfigOrDict
+from .common import PromptOptimizerConfig
+from .common import PromptOptimizerConfigDict
+from .common import PromptOptimizerConfigOrDict
+from .common import PromptOptimizerMethod
 from .common import PromptOrDict
 from .common import PromptRef
 from .common import PromptRefDict
@@ -1499,6 +1506,9 @@ __all__ = [
     "GetAgentEngineMemoryRevisionConfig",
     "GetAgentEngineMemoryRevisionConfigDict",
     "GetAgentEngineMemoryRevisionConfigOrDict",
+    "IntermediateExtractedMemory",
+    "IntermediateExtractedMemoryDict",
+    "IntermediateExtractedMemoryOrDict",
     "MemoryRevision",
     "MemoryRevisionDict",
     "MemoryRevisionOrDict",
@@ -1733,9 +1743,12 @@ __all__ = [
     "UpdateDatasetConfig",
     "UpdateDatasetConfigDict",
     "UpdateDatasetConfigOrDict",
-    "PromptOptimizerVAPOConfig",
-    "PromptOptimizerVAPOConfigDict",
-    "PromptOptimizerVAPOConfigOrDict",
+    "PromptOptimizerConfig",
+    "PromptOptimizerConfigDict",
+    "PromptOptimizerConfigOrDict",
+    "OptimizerMethodPlaceholder",
+    "OptimizerMethodPlaceholderDict",
+    "OptimizerMethodPlaceholderOrDict",
     "ApplicableGuideline",
     "ApplicableGuidelineDict",
     "ApplicableGuidelineOrDict",
@@ -1831,6 +1844,7 @@ __all__ = [
     "Importance",
     "OptimizeTarget",
     "GenerateMemoriesResponseGeneratedMemoryAction",
+    "PromptOptimizerMethod",
     "PromptData",
     "PromptDataDict",
     "PromptDataOrDict",

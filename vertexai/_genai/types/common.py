@@ -354,6 +354,15 @@ class GenerateMemoriesResponseGeneratedMemoryAction(_common.CaseInSensitiveEnum)
     """The memory was deleted."""
 
 
+class PromptOptimizerMethod(_common.CaseInSensitiveEnum):
+    """The method for data driven prompt optimization."""
+
+    VAPO = "VAPO"
+    """The default data driven Vertex AI Prompt Optimizer."""
+    OPTIMIZATION_TARGET_GEMINI_NANO = "OPTIMIZATION_TARGET_GEMINI_NANO"
+    """The data driven prompt optimizer designer for prompts from Android core API."""
+
+
 class CreateEvaluationItemConfig(_common.BaseModel):
     """Config to create an evaluation item."""
 
@@ -7520,6 +7529,17 @@ class RetrieveAgentEngineMemoriesConfig(_common.BaseModel):
     http_options: Optional[genai_types.HttpOptions] = Field(
         default=None, description="""Used to override HTTP request options."""
     )
+    filter: Optional[str] = Field(
+        default=None,
+        description="""The standard list filter that will be applied to the retrieved
+      memories. More detail in [AIP-160](https://google.aip.dev/160).
+
+      Supported fields:
+       * `fact`
+       * `create_time`
+       * `update_time`
+      """,
+    )
 
 
 class RetrieveAgentEngineMemoriesConfigDict(TypedDict, total=False):
@@ -7527,6 +7547,16 @@ class RetrieveAgentEngineMemoriesConfigDict(TypedDict, total=False):
 
     http_options: Optional[genai_types.HttpOptionsDict]
     """Used to override HTTP request options."""
+
+    filter: Optional[str]
+    """The standard list filter that will be applied to the retrieved
+      memories. More detail in [AIP-160](https://google.aip.dev/160).
+
+      Supported fields:
+       * `fact`
+       * `create_time`
+       * `update_time`
+      """
 
 
 RetrieveAgentEngineMemoriesConfigOrDict = Union[
@@ -7946,6 +7976,26 @@ _GetAgentEngineMemoryRevisionRequestParametersOrDict = Union[
 ]
 
 
+class IntermediateExtractedMemory(_common.BaseModel):
+    """An extracted memory that is the intermediate result before consolidation."""
+
+    fact: Optional[str] = Field(
+        default=None, description="""Output only. The fact of the extracted memory."""
+    )
+
+
+class IntermediateExtractedMemoryDict(TypedDict, total=False):
+    """An extracted memory that is the intermediate result before consolidation."""
+
+    fact: Optional[str]
+    """Output only. The fact of the extracted memory."""
+
+
+IntermediateExtractedMemoryOrDict = Union[
+    IntermediateExtractedMemory, IntermediateExtractedMemoryDict
+]
+
+
 class MemoryRevision(_common.BaseModel):
     """A memory revision."""
 
@@ -7969,6 +8019,10 @@ class MemoryRevision(_common.BaseModel):
         default=None,
         description="""Output only. The labels of the Memory Revision. These labels are applied to the MemoryRevision when it is created based on `GenerateMemoriesRequest.revision_labels`.""",
     )
+    extracted_memories: Optional[list[IntermediateExtractedMemory]] = Field(
+        default=None,
+        description="""Output only. The extracted memories from the source content before consolidation when the memory was updated via GenerateMemories. This information was used to modify an existing Memory via Consolidation.""",
+    )
 
 
 class MemoryRevisionDict(TypedDict, total=False):
@@ -7988,6 +8042,9 @@ class MemoryRevisionDict(TypedDict, total=False):
 
     labels: Optional[dict[str, str]]
     """Output only. The labels of the Memory Revision. These labels are applied to the MemoryRevision when it is created based on `GenerateMemoriesRequest.revision_labels`."""
+
+    extracted_memories: Optional[list[IntermediateExtractedMemoryDict]]
+    """Output only. The extracted memories from the source content before consolidation when the memory was updated via GenerateMemories. This information was used to modify an existing Memory via Consolidation."""
 
 
 MemoryRevisionOrDict = Union[MemoryRevision, MemoryRevisionDict]
@@ -10207,7 +10264,9 @@ class _UpdateMultimodalDatasetParameters(_common.BaseModel):
     )
     name: Optional[str] = Field(default=None, description="""""")
     display_name: Optional[str] = Field(default=None, description="""""")
-    metadata: Optional[dict[str, Any]] = Field(default=None, description="""""")
+    metadata: Optional[SchemaTablesDatasetMetadata] = Field(
+        default=None, description=""""""
+    )
     description: Optional[str] = Field(default=None, description="""""")
     encryption_spec: Optional[genai_types.EncryptionSpec] = Field(
         default=None, description=""""""
@@ -10226,7 +10285,7 @@ class _UpdateMultimodalDatasetParametersDict(TypedDict, total=False):
     display_name: Optional[str]
     """"""
 
-    metadata: Optional[dict[str, Any]]
+    metadata: Optional[SchemaTablesDatasetMetadataDict]
     """"""
 
     description: Optional[str]
@@ -11975,7 +12034,7 @@ _UpdateDatasetParametersOrDict = Union[
 ]
 
 
-class PromptOptimizerVAPOConfig(_common.BaseModel):
+class PromptOptimizerConfig(_common.BaseModel):
     """VAPO Prompt Optimizer Config."""
 
     config_path: Optional[str] = Field(
@@ -12000,7 +12059,7 @@ class PromptOptimizerVAPOConfig(_common.BaseModel):
     )
 
 
-class PromptOptimizerVAPOConfigDict(TypedDict, total=False):
+class PromptOptimizerConfigDict(TypedDict, total=False):
     """VAPO Prompt Optimizer Config."""
 
     config_path: Optional[str]
@@ -12019,8 +12078,26 @@ class PromptOptimizerVAPOConfigDict(TypedDict, total=False):
     """The display name of the optimization job. If not provided, a display name in the format of "vapo-optimizer-{timestamp}" will be used."""
 
 
-PromptOptimizerVAPOConfigOrDict = Union[
-    PromptOptimizerVAPOConfig, PromptOptimizerVAPOConfigDict
+PromptOptimizerConfigOrDict = Union[PromptOptimizerConfig, PromptOptimizerConfigDict]
+
+
+class OptimizerMethodPlaceholder(_common.BaseModel):
+    """Placeholder class to generate OptimizerMethod enum in common.py."""
+
+    method: Optional[PromptOptimizerMethod] = Field(
+        default=None, description="""The method for optimizing multiple prompts."""
+    )
+
+
+class OptimizerMethodPlaceholderDict(TypedDict, total=False):
+    """Placeholder class to generate OptimizerMethod enum in common.py."""
+
+    method: Optional[PromptOptimizerMethod]
+    """The method for optimizing multiple prompts."""
+
+
+OptimizerMethodPlaceholderOrDict = Union[
+    OptimizerMethodPlaceholder, OptimizerMethodPlaceholderDict
 ]
 
 
